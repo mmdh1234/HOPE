@@ -9,7 +9,6 @@ import HomePage from '../pages/Home/home.jsx';
 import LearnPage from '../pages/Learn/learn.jsx';
 import QuizPage from '../pages/Quiz/quiz.jsx';
 import ProgressPage from '../pages/Progress/progress.jsx';
-
 const AppRoutes = () => {
     return (
         <Routes>
