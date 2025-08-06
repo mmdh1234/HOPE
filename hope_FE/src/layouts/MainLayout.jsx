@@ -1,17 +1,14 @@
 import React from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
+import Header from '../components/common/Header';
 
 const MainLayout = () => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-
-    if (!isLoggedIn) {
-        return <Navigate to="/" replace />;
-    }
-
     return (
         <>
-            <h2>🌟 Main Layout</h2>
-            <Outlet />
+            <Header />
+            <main style={{ padding: '32px' }}>
+                <Outlet />
+            </main>
         </>
     );
 };
