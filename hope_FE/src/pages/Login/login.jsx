@@ -7,14 +7,35 @@ import Button from '../../components/ui/Button';
 import Label from '../../components/ui/Label';
 
 const LoginPage = () => {
+    console.log('LoginPage rendered');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
 
-    const handleLogin = () => {
-        if (!email || !password) return alert('이메일과 비밀번호를 입력하세요.');
-        localStorage.setItem('isLoggedIn', 'true');
-        navigate('/main');
+    const handleLogin = async () => {
+        if (!email || !password)
+            return alert('이메일과 비밀번호를 입력하세요.');
+
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                return alert(data.message || '로그인 실패');
+            }
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+            }
+            navigate('/main');
+        } catch (error) {
+            alert('서버 오류: ' + error.message);
+        }
     };
 
     return (
@@ -22,9 +43,19 @@ const LoginPage = () => {
             <p>SW와 코딩을 배우고 성장하는 공간</p>
             <AuthTabHeader />
             <Label>이메일</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="이메일 입력" />
+            <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="이메일 입력"
+            />
             <Label>비밀번호</Label>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호 입력" />
+            <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="비밀번호 입력"
+            />
             <Button onClick={handleLogin}>로그인</Button>
         </AuthFormLayout>
     );

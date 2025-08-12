@@ -1,0 +1,27 @@
+{
+    "name": "hope_be",
+    "version": "1.0.0",
+    "main": "index.js",
+    "scripts": {
+        "dev": "nodemon app.js",
+        "start": "node app.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description": "-   npm i express dotenv cors\r -   npm i ejs express-ejs-layouts\r -   npm i mongoose express-async-handler\r -   npm i bcrypt",
+    "dependencies": {
+        "bcrypt": "^6.0.0",
+        "cors": "^2.8.5",
+        "dotenv": "^17.2.1",
+        "ejs": "^3.1.10",
+        "express": "^5.1.0",
+        "express-async-handler": "^1.2.0",
+        "express-ejs-layouts": "^2.5.1",
+        "jsonwebtoken": "^9.0.2",
+        "mongoose": "^8.17.1"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.10"
+    }
+}
