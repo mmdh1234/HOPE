@@ -1,4 +1,5 @@
 const errorhandler = (err, req, res, next) => {
+    
     const status = err.status || 500;
     switch (status) {
         // 400:잘못된 요청
