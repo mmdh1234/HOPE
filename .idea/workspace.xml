@@ -5,11 +5,42 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2f7ffe23-b755-4099-aa7d-7ae937ae737c" name="변경" comment="">
+      <change afterPath="$PROJECT_DIR$/hope_FE/src/components/learn/LearnUpload.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hope_BE/node_modules/.package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/hope_BE/node_modules/.package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hope_FE/src/pages/Home/home.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/hope_FE/src/pages/Home/home.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hope_FE/src/pages/Home/home.style.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/hope_FE/src/pages/Home/home.style.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hope_FE/src/pages/Learn/learn.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/hope_FE/src/pages/Learn/learn.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hope_FE/src/pages/Learn/learn.style.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/hope_FE/src/pages/Learn/learn.style.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hope_FE/src/pages/Login/login.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/hope_FE/src/pages/Login/login.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hope_FE/src/pages/Login/login.style.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/hope_FE/src/pages/Login/login.style.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hope_FE/src/pages/Signup/signup.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/hope_FE/src/pages/Signup/signup.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hope_FE/src/pages/Signup/signup.style.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/hope_FE/src/pages/Signup/signup.style.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hope_FE/src/routes/route.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/hope_FE/src/routes/route.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/.bin/conc" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/.bin/conc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/.bin/conc.cmd" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/.bin/conc.ps1" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/.bin/concurrently" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/.bin/concurrently" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/.bin/concurrently.cmd" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/.bin/concurrently.ps1" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/.bin/tree-kill" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/.bin/tree-kill" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/.bin/tree-kill.cmd" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/.bin/tree-kill.ps1" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/color-name/LICENSE" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/color-name/LICENSE" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/color-name/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/color-name/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/color-name/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/color-name/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/color-name/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/color-name/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/concurrently/dist/bin/concurrently.js" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/concurrently/dist/bin/concurrently.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/rxjs/dist/bundles/rxjs.umd.js" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/rxjs/dist/bundles/rxjs.umd.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/shell-quote/print.py" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/shell-quote/print.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/tree-kill/cli.js" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/tree-kill/cli.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/tree-kill/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/tree-kill/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/tslib/CopyrightNotice.txt" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/tslib/CopyrightNotice.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/tslib/LICENSE.txt" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/tslib/LICENSE.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/tslib/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/tslib/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/tslib/modules/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/tslib/modules/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/tslib/modules/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/tslib/modules/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/tslib/tslib.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/tslib/tslib.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/tslib/tslib.es6.js" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/tslib/tslib.es6.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/tslib/tslib.js" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/tslib/tslib.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/node_modules/wrap-ansi/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/node_modules/wrap-ansi/index.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -19,8 +50,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="JSX File" />
         <option value="TypeScript File" />
+        <option value="JSX File" />
         <option value="JavaScript File" />
       </list>
     </option>
@@ -49,27 +80,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "refactor/#2-loginsignupPages",
-    "last_opened_file_path": "/Users/maeng/Desktop/KW/HOPE/hope_FE/src/pages/Signup",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "yarn",
-    "settings.editor.selected.configurable": "preferences.lookFeel",
-    "ts.external.directory.path": "/Applications/WebStorm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Node.js.home.jsx.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/#11__Learnpage&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/maeng/Desktop/KW/HOPE/hope_FE/src/pages/Signup&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;yarn&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Applications/WebStorm.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/hope_FE/src/pages/Signup" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/hope_FE/src/components/learn" />
+      <recent name="$PROJECT_DIR$/hope_FE/src/components/common/MainHeader" />
     </key>
   </component>
   <component name="SharedIndexes">
@@ -89,6 +125,12 @@
       <workItem from="1754386041827" duration="1331000" />
       <workItem from="1754388125162" duration="3182000" />
       <workItem from="1754453428466" duration="1170000" />
+      <workItem from="1754458806510" duration="1512000" />
+      <workItem from="1755059583419" duration="2035000" />
+      <workItem from="1755061634454" duration="1249000" />
+      <workItem from="1755062893660" duration="5161000" />
+      <workItem from="1755651666005" duration="11111000" />
+      <workItem from="1756980295610" duration="71000" />
     </task>
     <servers />
   </component>
