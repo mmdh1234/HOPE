@@ -30,14 +30,22 @@ const LoginPage = () => {
                 return alert(data.message || '로그인 실패');
             }
             if (data.token) {
-                localStorage.setItem('token', data.token);
                 console.log(data);
+                localStorage.setItem('token', data.token);
                 localStorage.setItem('userName', data.user.username);
+                localStorage.setItem('userId', data.user.id);
 
             }
+            localStorage.setItem('isLoggedIn', 'true');
             navigate('/main');
         } catch (error) {
             alert('서버 오류: ' + error.message);
+        }
+    };
+
+    const handleKeyDown = (event) => {
+        if (event.key === 'Enter') {
+            handleLogin();
         }
     };
 
@@ -58,6 +66,7 @@ const LoginPage = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="비밀번호 입력"
+                onKeyDown={handleKeyDown}
             />
             <Button onClick={handleLogin}>로그인</Button>
         </AuthFormLayout>
