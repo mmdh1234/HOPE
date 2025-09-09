@@ -12,6 +12,12 @@ router.get('/', controller.getEnrollmentByUserAndCourse);
 // 특정 사용자 수강 강좌 목록
 router.get('/user/:userId/courses', controller.listUserCourses);
 
+// 사용자별 진도율 업데이트
+router.put('/user/:userId/course/:courseId/progress', controller.updateUserCourseProgress);
+
+// 사용자별 진도 조회
+router.get('/user/:userId/course/:courseId/progress', controller.getUserCourseProgress);
+
 module.exports = router;
 
 

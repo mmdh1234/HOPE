@@ -31,10 +31,19 @@ router.get('/:courseId/pdf', controller.streamCoursePdf);
 router.get('/:courseId/overview', controller.getCourseOverview);
 
 // 강좌 수정
-router.put('/:courseId', controller.updateCourse);
+router.patch('/:courseId', controller.updateCourse);
 
 // 강좌 삭제
 router.delete('/:courseId', controller.deleteCourse);
+
+// 내가 만든 강의 목록 조회
+router.get('/users/:userId/courses', controller.getMyCourses);
+
+// 내 강의 진도율 업데이트 (생성자만 가능)
+router.patch('/:courseId/my-progress', controller.updateMyCourseProgress);
+
+// 내 강의 진도 조회 (생성자만 가능)
+router.get('/:courseId/my-progress', controller.getMyCourseProgress);
 
 module.exports = router;
 

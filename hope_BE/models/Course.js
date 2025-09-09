@@ -12,6 +12,12 @@ const CourseSchema = new Schema(
 		studentCount: { type: Number, default: 0 },
 		pdfFileId: { type: Schema.Types.ObjectId, required: true },
 		totalPages: { type: Number, min: 1, default: 1 },
+		// 강의 생성자 (유일한 수강생)
+		createdBy: { type: Schema.Types.ObjectId, ref: 'login', required: true, index: true },
+		// 생성자의 진도율 (단일 사용자이므로 Course에 직접 저장)
+		currentPage: { type: Number, min: 0, default: 0 },
+		completionRate: { type: Number, min: 0, max: 100, default: 0 },
+		lastStudiedAt: { type: Date, default: null },
 	},
 	{ timestamps: true }
 );
