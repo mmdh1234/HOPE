@@ -1,7 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
 
-// 카드 전체 스타일
+// ... (스타일 컴포넌트는 기존과 동일)
+
 const CardWrapper = styled.div`
   background-color: white;
   border-radius: 16px;
@@ -10,7 +11,7 @@ const CardWrapper = styled.div`
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
   display: flex;
   flex-direction: column;
-  height: 100%; // 그리드 레이아웃에서 높이를 채우도록 설정
+  height: 100%;
 
   &:hover {
     transform: translateY(-5px);
@@ -18,7 +19,6 @@ const CardWrapper = styled.div`
   }
 `;
 
-// ... (나머지 스타일 컴포넌트는 아래에 이어서 작성)
 const Title = styled.h3`
   font-size: 1.25rem;
   font-weight: bold;
@@ -28,7 +28,7 @@ const Title = styled.h3`
 const Description = styled.p`
   font-size: 0.9rem;
   color: #666;
-  flex-grow: 1; // 내용이 적어도 카드의 높이를 채우도록 함
+  flex-grow: 1;
 `;
 
 const ProgressBarContainer = styled.div`
@@ -42,7 +42,7 @@ const ProgressBarContainer = styled.div`
 const ProgressBar = styled.div`
   width: ${props => props.progress}%;
   height: 100%;
-  background-color: #4B8BFF; // 주요 색상
+  background-color: #4B8BFF;
   border-radius: 4px;
 `;
 
@@ -67,22 +67,31 @@ const ContinueButton = styled.button`
   cursor: pointer;
 `;
 
-const LearnCard = ({ material }) => {
+// material prop을 course로 변경하여 의미를 명확하게 합니다.
+const LearnCard = ({ material: course }) => {
+    // 난이도를 한글로 매핑
+    const difficultyMap = {
+        beginner: '초급',
+        intermediate: '중급',
+        advanced: '고급',
+    };
+
     return (
         <CardWrapper>
-            <Title>{material.title}</Title>
-            <Description>{material.description}</Description>
+            <Title>{course.title}</Title>
+            <Description>{course.description}</Description>
 
             <div>진도율</div>
             <ProgressBarContainer>
-                <ProgressBar progress={material.progress} />
+                {/* 진도율은 아직 없으므로 0%로 고정 */}
+                <ProgressBar progress={0} />
             </ProgressBarContainer>
 
             <InfoContainer>
-                <span>{material.difficulty}</span>
-                <span>{material.fileType}</span>
-                <span>{`${material.totalPages}페이지`}</span>
-                <span>{material.size}</span>
+                <span>{difficultyMap[course.difficulty] || '미설정'}</span>
+                <span>PDF</span> {/* 파일 타입은 PDF로 고정 */}
+                <span>{`${course.totalPages || 1}페이지`}</span>
+                <span>{course.studentCount}명 수강</span>
             </InfoContainer>
 
             <ContinueButton>계속 읽기</ContinueButton>

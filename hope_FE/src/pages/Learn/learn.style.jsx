@@ -3,7 +3,7 @@ import styled, { css } from 'styled-components';
 // 페이지 전체를 감싸는 컨테이너
 export const LearnPageContainer = styled.div`
   width: 100%;
-  padding: 2rem;
+  
   background-color: #f7f8fc; // 전체적인 배경색
 `;
 

@@ -8,5 +8,8 @@
         "client": "cd hope_FE && npm run dev",
         "build": "cd hope_FE && npm run build",
         "start": "cd hope_FE && npm run start"
+    },
+    "dependencies": {
+        "react-pdf": "^10.1.0"
     }
 }
