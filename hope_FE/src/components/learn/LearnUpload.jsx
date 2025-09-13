@@ -44,6 +44,11 @@ const LearnUpload = ({ onUploadSuccess }) => {
         }
 
         const formData = new FormData();
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+            return alert('사용자 ID를 찾을 수 없습니다. 로그인이 필요합니다.');
+        }
+        formData.append('userId', userId);
         formData.append('title', title);
         formData.append('description', description);
         formData.append('category', category);
