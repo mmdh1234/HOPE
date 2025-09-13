@@ -1,0 +1,8 @@
+.quiz-list-container { max-width: 800px; margin: 2rem auto; padding: 1rem; }
+.file-upload-section { background-color: #f9f9f9; border: 1px solid #ddd; padding: 1.5rem; margin-bottom: 2rem; border-radius: 8px; }
+.file-upload-section h2 { margin-top: 0; }
+.file-upload-section button { margin-left: 1rem; padding: 0.5rem 1rem; cursor: pointer; }
+.error-message { color: red; margin-top: 1rem; }
+.quiz-list-item { background-color: #fff; border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; cursor: pointer; transition: box-shadow 0.2s; }
+.quiz-list-item:hover { box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+.quiz-list-item h3 { margin-top: 0; }

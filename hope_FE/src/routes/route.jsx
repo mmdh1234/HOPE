@@ -5,10 +5,11 @@ import MainLayout from '../layouts/MainLayout.jsx';
 
 import LoginPage from '../pages/Login/login.jsx';
 import SignupPage from '../pages/Signup/signup.jsx';
-// import HomePage from '../pages/Home/home.jsx';
-// import LearnPage from '../pages/Learn/learn.jsx';
-// import QuizPage from '../pages/Quiz/quiz.jsx';
-// import ProgressPage from '../pages/Progress/progress.jsx';
+import HomePage from '../pages/Home/home.jsx';
+import LearnPage from '../pages/Learn/learn.jsx';
+import QuizListPage from '../pages/QuizList/QuizListPage';
+import QuizPage from '../pages/Quiz/quiz';
+import ProgressPage from '../pages/Progress/progress.jsx';
 
 const AppRoutes = () => {
     return (
@@ -19,12 +20,15 @@ const AppRoutes = () => {
                 <Route path="signup" element={<SignupPage />} />
             </Route>
 
-            {/* Main Layout */}
+             {/* Main Layout */}
             <Route path="/main" element={<MainLayout />}>
-                {/*<Route index element={<HomePage />} />*/}
-                {/*<Route path="learn" element={<LearnPage />} />*/}
-                {/*<Route path="quiz" element={<QuizPage />} />*/}
-                {/*<Route path="progress" element={<ProgressPage />} />*/}
+                <Route index element={<HomePage />} />
+                <Route path="learn" element={<LearnPage />} />
+                <Route path="quiz">
+                    <Route index element={<QuizListPage />} />
+                    <Route path=":quizId" element={<QuizPage />} />
+                </Route>
+                <Route path="progress" element={<ProgressPage />} />
             </Route>
 
             <Route path="*" element={<div>404 Not Found</div>} />
