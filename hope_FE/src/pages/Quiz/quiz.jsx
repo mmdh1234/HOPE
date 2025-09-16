@@ -24,7 +24,7 @@ const QuizPage = () => {
         }
       } catch (error) {
         console.error("퀴즈를 불러오는데 실패했습니다.", error);
-        setQuiz(null); // 오류 발생 시 quiz를 null로 설정
+        setQuiz(null);
       } finally {
         setIsLoading(false);
       }
@@ -69,16 +69,17 @@ const QuizPage = () => {
   if (scoreData) {
     return (
       <S.Container>
-        <S.Card>
+        <S.ResultCard>
           <h1>퀴즈 결과</h1>
-          <h2>총점: {scoreData.score.toFixed(0)}점</h2>
-          <button onClick={() => navigate('/main/quiz')}>목록으로 돌아가기</button>
-        </S.Card>
+          <h2>{scoreData.score.toFixed(0)}점</h2>
+          <S.ActionButton onClick={() => navigate('/main/quiz')}>
+            목록으로 돌아가기
+          </S.ActionButton>
+        </S.ResultCard>
       </S.Container>
     );
   }
   
-  // quiz 데이터나 questions 배열이 없을 경우를 완벽하게 처리
   if (!quiz || !quiz.questions || quiz.questions.length === 0) {
     return <S.Container><h2>퀴즈를 찾을 수 없습니다.</h2></S.Container>;
   }
@@ -90,7 +91,7 @@ const QuizPage = () => {
     <S.Container>
       <h1>{quiz.title}</h1>
       <S.Card>
-        <h2>Q{currentQuestionIndex + 1}. {currentQuestion.questionText}</h2>
+        <S.QuestionText>Q{currentQuestionIndex + 1}. {currentQuestion.questionText}</S.QuestionText>
         <S.OptionsContainer>
           {currentQuestion.options.map((option, index) => (
             <S.OptionButton
@@ -104,9 +105,13 @@ const QuizPage = () => {
         </S.OptionsContainer>
         <S.NavigationButtons>
           {isLastQuestion ? (
-            <button onClick={handleSubmit} disabled={userAnswers.includes(null)}>제출하기</button>
+            <S.ActionButton onClick={handleSubmit} disabled={userAnswers.includes(null)}>
+              제출하기
+            </S.ActionButton>
           ) : (
-            <button onClick={handleNext} disabled={userAnswers[currentQuestionIndex] === null}>다음 문제</button>
+            <S.ActionButton onClick={handleNext} disabled={userAnswers[currentQuestionIndex] === null}>
+              다음 문제
+            </S.ActionButton>
           )}
         </S.NavigationButtons>
       </S.Card>
