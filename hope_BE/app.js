@@ -4,6 +4,8 @@ const path = require('path');
 const checkLogin = require('./middlewares/checkLogin');
 const errorhandler = require('./middlewares/errorhandler');
 //const cookieParser = require('cookie-parser');
+const quizRoutes = require('./routes/quizRoutes');
+const loginRoutes = require('./routes/loginRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,6 +35,8 @@ app.use(
     },
     require('./routes/loginRoutes')
 );
+
+app.use('/api/quizzes', quizRoutes);
 
 app.use(errorhandler);
 

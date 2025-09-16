@@ -8,6 +8,7 @@ import SignupPage from '../pages/Signup/signup.jsx';
 import HomePage from '../pages/Home/home.jsx';
 import LearnPage from '../pages/Learn/learn.jsx';
 import QuizPage from '../pages/Quiz/quiz.jsx';
+import QuizListPage from '../pages/QuizList/QuizListPage';
 import ProgressPage from '../pages/Progress/progress.jsx';
 import LearnDetailPage from "../pages/Learn/LearnDetailPage.jsx";
 
@@ -23,7 +24,10 @@ const AppRoutes = () => {
             {/* Main Layout */}
             <Route path="/main" element={<MainLayout />}>
                 <Route index element={<HomePage />} />
-                <Route path="quiz" element={<QuizPage />} />
+                <Route path="quiz">
+                    <Route index element={<QuizListPage />} />
+                    <Route path=":quizId" element={<QuizPage />} />
+                </Route>
                 <Route path="progress" element={<ProgressPage />} />
                 <Route path="learn" element={<LearnPage />} />
                 <Route path="learn/:materialId" element={<LearnDetailPage />} />
