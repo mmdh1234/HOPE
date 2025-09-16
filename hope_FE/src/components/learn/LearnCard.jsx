@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
 
-// ... (스타일 컴포넌트는 기존과 동일)
 
 const CardWrapper = styled.div`
   background-color: white;

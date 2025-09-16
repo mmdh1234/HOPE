@@ -20,6 +20,23 @@ export const HeaderTop = styled.div`
   margin-bottom: 1rem;
 `;
 
+export const CheckerToggleButton = styled.button`
+  background-color: ${({ isActive }) => isActive ? '#f5222d' : '#28a745'};
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+
 export const BackButton = styled.button`
   background: none;
   border: 1px solid #dee2e6;
@@ -129,3 +146,6 @@ export const ProgressInfo = styled.div`
   font-size: 0.9rem;
   font-weight: 500;
 `;
+
+
+

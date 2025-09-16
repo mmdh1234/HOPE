@@ -5,6 +5,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
 import * as S from './LearnDetailPage.style';
+import ConcentrationChecker from '../../components/learn/ConcentrationChecker';
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
@@ -18,10 +19,11 @@ const LearnDetailPage = () => {
     const [pageNumber, setPageNumber] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
     
-    // 스크롤 위치를 기억하기 위한 ref
-    const scrollPositionRef = useRef(0);
+    // --- 1. 집중도 체커를 켜고 끄는 상태를 추가합니다 ---
+    const [isCheckerActive, setIsCheckerActive] = useState(false);
 
-    // 데이터 로딩 useEffect
+
+    // (데이터 로딩 useEffect 등 다른 로직은 모두 동일합니다)
     useEffect(() => {
         const fetchCourseData = async () => {
             setIsLoading(true);
@@ -54,26 +56,13 @@ const LearnDetailPage = () => {
         };
     }, [materialId]);
 
+
     const onDocumentLoadSuccess = ({ numPages }) => {
         setNumPages(numPages);
     };
 
-    // 페이지 이동 함수
-    const goToPrevPage = () => {
-        scrollPositionRef.current = window.scrollY; // 현재 스크롤 위치 저장
-        setPageNumber(prev => Math.max(prev - 1, 1));
-    };
-
-    const goToNextPage = () => {
-        scrollPositionRef.current = window.scrollY; // 현재 스크롤 위치 저장
-        setPageNumber(prev => Math.min(prev + 1, numPages));
-    };
-
-    // --- 여기가 핵심 수정 부분입니다 ---
-    // PDF 렌더링이 성공적으로 완료된 후 스크롤 위치를 복원합니다.
-    const onPageRenderSuccess = () => {
-        window.scrollTo(0, scrollPositionRef.current);
-    };
+    const goToPrevPage = () => setPageNumber(prev => Math.max(prev - 1, 1));
+    const goToNextPage = () => setPageNumber(prev => Math.min(prev + 1, numPages));
 
     const progress = numPages ? Math.round((pageNumber / numPages) * 100) : 0;
 
@@ -86,6 +75,15 @@ const LearnDetailPage = () => {
             <S.Header>
                 <S.HeaderTop>
                     <S.BackButton onClick={() => navigate('/main/learn')}>← 목록으로</S.BackButton>
+                    
+                    {/* --- 2. 토글 버튼을 추가합니다 --- */}
+                    <S.CheckerToggleButton 
+                        isActive={isCheckerActive}
+                        onClick={() => setIsCheckerActive(!isCheckerActive)}
+                    >
+                        {isCheckerActive ? '집중도 체크 끄기' : '집중도 체크 켜기'}
+                    </S.CheckerToggleButton>
+
                 </S.HeaderTop>
                 <S.Title>{course?.title}</S.Title>
                 <S.Description>{course?.description}</S.Description>
@@ -94,6 +92,7 @@ const LearnDetailPage = () => {
                 </S.MetaInfo>
             </S.Header>
 
+            {/* ... (PdfViewerContainer 및 Footer JSX는 기존과 동일) ... */}
             <S.PdfViewerContainer>
                 <S.PaginationControls>
                     <S.NavButton onClick={goToPrevPage} disabled={pageNumber <= 1}>이전</S.NavButton>
@@ -108,10 +107,7 @@ const LearnDetailPage = () => {
                             onLoadSuccess={onDocumentLoadSuccess}
                             loading={<S.LoadingText>PDF 렌더링 중...</S.LoadingText>}
                         >
-                            <Page
-                                pageNumber={pageNumber}
-                                onRenderSuccess={onPageRenderSuccess} // 렌더링 성공 시 콜백 함수 연결
-                            />
+                            <Page pageNumber={pageNumber} />
                         </Document>
                     )}
                 </S.PdfDocumentWrapper>
@@ -126,6 +122,10 @@ const LearnDetailPage = () => {
                     <span>{progress}% 완료</span>
                 </S.ProgressInfo>
             </S.Footer>
+
+
+            {/* --- 3. isCheckerActive 상태가 true일 때만 ConcentrationChecker를 렌더링합니다 --- */}
+            {isCheckerActive && <ConcentrationChecker />}
         </S.PageWrapper>
     );
 };
