@@ -237,3 +237,45 @@ exports.regenerateQuiz = async (req, res) => {
     res.status(500).json({ ok: false, message: '새 문제 생성에 실패했습니다.', error: error.message });
   }
 };
+
+// 6. 퀴즈 삭제
+exports.deleteQuiz = async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    
+    // 퀴즈 존재 여부 및 권한 확인
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      return res.status(404).json({ ok: false, message: '퀴즈를 찾을 수 없습니다.' });
+    }
+    
+    // 연관된 QuestionSet들 모두 삭제
+    await QuestionSet.deleteMany({ quizId: quizId });
+    
+    // 소스 파일 삭제 (파일 시스템에서)
+    if (quiz.sourceFileUrl && fs.existsSync(quiz.sourceFileUrl)) {
+      try {
+        fs.unlinkSync(quiz.sourceFileUrl);
+      } catch (fileError) {
+        console.warn('소스 파일 삭제 실패:', fileError.message);
+        // 파일 삭제 실패해도 퀴즈는 삭제 진행
+      }
+    }
+    
+    // 퀴즈 삭제
+    await Quiz.findByIdAndDelete(quizId);
+    
+    res.status(200).json({
+      ok: true,
+      message: '퀴즈가 성공적으로 삭제되었습니다.'
+    });
+    
+  } catch (error) {
+    console.error('퀴즈 삭제 실패:', error);
+    res.status(500).json({ 
+      ok: false, 
+      message: '퀴즈 삭제 중 오류가 발생했습니다.', 
+      error: error.message 
+    });
+  }
+};
