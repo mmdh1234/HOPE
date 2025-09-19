@@ -17,7 +17,7 @@ exports.train = async (req, res) => {
         if (code !== 0)
             return res
                 .status(500)
-                .json({ message: 'Training failed', detail: stderr });
+                .json({ message: '학습 실패', detail: stderr });
         try {
             return res.status(200).json(JSON.parse(stdout));
         } catch {

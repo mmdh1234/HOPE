@@ -9,12 +9,34 @@ import sys
 from pymongo import MongoClient
 import io
 
-# 사용자 ID를 명령줄 인자로 받음
-if len(sys.argv) > 1:
-    userId = sys.argv[1]
-else:
-    print("Error: No userId provided.", file=sys.stderr)
+# 1. 사용자 ID 받기
+if len(sys.argv) < 2:
+    print("Error: No userId provided.")
     sys.exit(1)
+
+userId = sys.argv[1]
+
+# 2. MongoDB 연결
+mongo_uri = os.getenv("DB_CONNECT") 
+client = MongoClient(mongo_uri)
+db = client['Signup']
+collection = db['user_models']
+
+# 3. 사용자 모델 로드
+model_doc = collection.find_one({'userId': userId})
+if not model_doc:
+    print(f"Error: 사용자 {userId} 모델 없음")
+    sys.exit(1)
+
+buffer = io.BytesIO(model_doc['modelData'])
+bundle = joblib.load(buffer)
+
+scaler = bundle['scaler']
+gmm_pos = bundle.get('gmm_pos', None)
+gmm_neg = bundle.get('gmm_neg', None)
+log_prior_pos = bundle.get('log_prior_pos', 0.0)
+log_prior_neg = bundle.get('log_prior_neg', 0.0)
+oneclass_thresh = bundle.get('oneclass_thresh', None)
     
 
 # ===================== Mediapipe 인덱스 =====================
