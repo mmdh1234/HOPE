@@ -1,101 +1,72 @@
 import React from 'react';
-import styled from 'styled-components';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { deleteCourse } from '../../api/api';
+import * as S from './LearnCard.style'; // 스타일 파일이 분리되어 있다고 가정
 
-
-const CardWrapper = styled.div`
-  background-color: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-  }
-`;
-
-const Title = styled.h3`
-  font-size: 1.25rem;
-  font-weight: bold;
-  margin: 0 0 8px 0;
-`;
-
-const Description = styled.p`
-  font-size: 0.9rem;
-  color: #666;
-  flex-grow: 1;
-`;
-
-const ProgressBarContainer = styled.div`
-  width: 100%;
-  height: 8px;
-  background-color: #e9ecef;
-  border-radius: 4px;
-  margin-top: 1rem;
-`;
-
-const ProgressBar = styled.div`
-  width: ${props => props.progress}%;
-  height: 100%;
-  background-color: #4B8BFF;
-  border-radius: 4px;
-`;
-
-const InfoContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.8rem;
-  color: #868e96;
-  margin-top: 1rem;
-`;
-
-const ContinueButton = styled.button`
-  width: 100%;
-  padding: 12px;
-  margin-top: 1.5rem;
-  border: none;
-  background-color: #1e293b;
-  color: white;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-`;
-
-// material prop을 course로 변경하여 의미를 명확하게 합니다.
 const LearnCard = ({ material: course }) => {
-    // 난이도를 한글로 매핑
-    const difficultyMap = {
-        beginner: '초급',
-        intermediate: '중급',
-        advanced: '고급',
-    };
+  const queryClient = useQueryClient();
 
-    return (
-        <CardWrapper>
-            <Title>{course.title}</Title>
-            <Description>{course.description}</Description>
+  if (!course) {
+    return null;
+  }
 
-            <div>진도율</div>
-            <ProgressBarContainer>
-                {/* 진도율은 아직 없으므로 0%로 고정 */}
-                <ProgressBar progress={0} />
-            </ProgressBarContainer>
+  const progress = course.completionRate || 0;
 
-            <InfoContainer>
-                <span>{difficultyMap[course.difficulty] || '미설정'}</span>
-                <span>PDF</span> {/* 파일 타입은 PDF로 고정 */}
-                <span>{`${course.totalPages || 1}페이지`}</span>
-                <span>{course.studentCount}명 수강</span>
-            </InfoContainer>
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteCourse(course._id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myCourses'] });
+    },
+    onError: (error) => {
+      alert(`삭제 실패: ${error.response?.data?.message || error.message}`);
+    },
+  });
 
-            <ContinueButton>계속 읽기</ContinueButton>
-        </CardWrapper>
-    );
+  // 🔥 삭제 버튼 클릭 시, 페이지 이동(Link)을 막는 것이 핵심!
+  const handleDelete = (e) => {
+    e.preventDefault(); // Link의 기본 동작을 막음
+    e.stopPropagation(); // 이벤트가 상위로 전파되는 것을 막음
+    if (window.confirm(`'${course.title}' 강좌를 정말 삭제하시겠습니까?`)) {
+      deleteMutation.mutate();
+    }
+  };
+
+  const difficultyMap = {
+    beginner: '초급',
+    intermediate: '중급',
+    advanced: '고급',
+  };
+
+  return (
+    <S.CardWrapper>
+      <S.TitleContainer>
+        <S.Title>{course.title}</S.Title>
+        {/* 👇 삭제 버튼에는 handleDelete 이벤트 핸들러를 연결 */}
+        <S.DeleteButton onClick={handleDelete} disabled={deleteMutation.isLoading}>
+          🗑️
+        </S.DeleteButton>
+      </S.TitleContainer>
+
+      <S.Description>{course.description}</S.Description>
+
+      <div>진도율 {Math.round(progress)}%</div>
+      <S.ProgressBarContainer>
+        <S.ProgressBar progress={progress} />
+      </S.ProgressBarContainer>
+
+      <S.InfoContainer>
+        <span>{difficultyMap[course.difficulty] || '미설정'}</span>
+        <span>PDF</span>
+        <span>{`${course.totalPages || 1}페이지`}</span>
+        <span>{course.studentCount}명 수강</span>
+      </S.InfoContainer>
+
+      {/* 👇 이 버튼은 Link의 일부이므로 별도의 onClick 이벤트가 필요 없습니다. */}
+      <S.ContinueButton>
+        {progress > 0 ? '계속 읽기' : '자료 보기'}
+      </S.ContinueButton>
+    </S.CardWrapper>
+  );
 };
 
 export default LearnCard;

@@ -35,7 +35,7 @@ const QuizListPage = () => {
     try {
       const response = await api.getQuizzes();
       setQuizzes(response.data.data);
-    } catch (err) {
+    } catch (_err) {
       setError('퀴즈 목록을 불러오는 데 실패했습니다.');
     }
   };
@@ -58,7 +58,7 @@ const QuizListPage = () => {
       alert('퀴즈가 성공적으로 생성되었습니다!');
       setFile(null); // 업로드 성공 후 선택된 파일 초기화
       fetchQuizzes();
-    } catch (err) {
+    } catch (_err) {
       setError('퀴즈 생성에 실패했습니다. 파일 형식을 확인해주세요.');
     } finally {
       setIsLoading(false);

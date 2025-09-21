@@ -14,20 +14,22 @@ const CardContainer = styled.div`
   }
 `;
 
-// materials prop을 courses로 변경
-const LearnList = ({ materials: courses }) => {
-    return (
-        <CardContainer>
-            {/* courses 배열을 map으로 순회 */}
-            {courses.map(course => (
-                // key와 to 경로를 course._id로 변경
-                <Link key={course._id} to={`/main/learn/${course._id}`}>
-                    {/* material prop으로 course 객체 전달 */}
-                    <LearnCard material={course} />
-                </Link>
-            ))}
-        </CardContainer>
-    );
+const LearnList = ({ materials }) => {
+  return (
+    <CardContainer>
+      {materials.map((course) => (
+        // 👇 Link 태그에 state prop을 추가합니다.
+        <Link
+          key={course._id}
+          to={`/main/learn/${course._id}`}
+          // 🔥 state를 통해 마지막 페이지 번호(currentPage)를 전달합니다.
+          state={{ startPage: course.currentPage }}
+        >
+          <LearnCard material={course} />
+        </Link>
+      ))}
+    </CardContainer>
+  );
 };
 
 export default LearnList;
