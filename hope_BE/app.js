@@ -3,7 +3,6 @@ const dbConnect = require('./config/dbConnect');
 const path = require('path');
 const checkLogin = require('./middlewares/checkLogin');
 const errorhandler = require('./middlewares/errorhandler');
-//const cookieParser = require('cookie-parser');
 const quizRoutes = require('./routes/quizRoutes');
 const loginRoutes = require('./routes/loginRoutes');
 const modelRoutes = require('./routes/modelRoutes');
@@ -14,8 +13,6 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static('./public'));
 // 업로드된 파일 정적 제공
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-//app.use(cookieParser());
 
 dbConnect();
 
@@ -29,7 +26,11 @@ app.use('/api/enrollments', require('./routes/enrollments'));
 app.use(
     '/api',
     (req, res, next) => {
-        if (req.path === '/login' || req.path === '/signup') {
+        if (
+            req.path === '/login' ||
+            req.path === '/signup' ||
+            req.path === '/logout'
+        ) {
             return next();
         }
         checkLogin(req, res, next);
