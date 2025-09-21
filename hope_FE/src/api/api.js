@@ -32,6 +32,7 @@ export const submitQuizAnswers = (quizId, data) =>
   apiClient.post(`/quizzes/${quizId}/submit`, data);
 export const regenerateQuiz = (quizId) =>
   apiClient.post(`/quizzes/${quizId}/regenerate`);
+export const deleteQuiz = (quizId) => apiClient.delete(`/quizzes/${quizId}`)
 
 // --- 강좌 API 함수들 ---
 export const getMyCourses = () => {
