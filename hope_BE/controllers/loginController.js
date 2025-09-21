@@ -3,6 +3,7 @@ const Login = require('../models/loginModel');
 const bcrypt = require('bcrypt');
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
+const BlacklistedToken = require('../models/blacklist');
 const jwtSecret = process.env.JWT_SECRET;
 
 const registerUser = asyncHandler(async (req, res) => {
@@ -80,9 +81,50 @@ const loginUser = asyncHandler(async (req, res) => {
     });
 });
 
-const logout = (req, res) => {
-    //res.clearCookie('token');
-    res.status(200).json({ message: '로그아웃 성공' });
-};
+const logout = asyncHandler(async (req, res) => {
+    try {
+        // 1) 토큰을 Authorization 헤더에서 읽기
+        let token = null;
+        const authHeader = req.headers.authorization || '';
+        if (authHeader.startsWith('Bearer ')) {
+            token = authHeader.split(' ')[1];
+        }
+
+        // 2) 또는 body에 token이 있으면 (sendBeacon 보낼때 body로 보낼 경우)
+        if (!token && req.body && req.body.token) {
+            token = req.body.token;
+        }
+
+        if (!token) {
+            // 토큰이 없어도 클라이언트 측에서 토큰 제거해주면 사용자는 로그아웃됨
+            return res
+                .status(200)
+                .json({ message: '로그아웃 성공(토큰 없음)' });
+        }
+
+        // 토큰 디코드해서 만료시간 추출(옵션)
+        let expiresAt = null;
+        try {
+            const decoded = jwt.decode(token);
+            if (decoded && decoded.exp) {
+                expiresAt = new Date(decoded.exp * 1000);
+            }
+        } catch (e) {
+            // decode 실패해도 블랙리스트에 넣는 것으로 처리
+        }
+
+        // 블랙리스트에 추가 (중복 가능성 대비 try/catch)
+        await BlacklistedToken.create({ token, expiresAt }).catch((err) => {
+            // 중복(이미 블랙리스트)에러는 무시
+            if (err.code !== 11000)
+                console.error('Blacklisting token error:', err);
+        });
+
+        return res.status(200).json({ message: '로그아웃 성공' });
+    } catch (error) {
+        console.error('logout error', error);
+        return res.status(500).json({ message: '서버 에러' });
+    }
+});
 
 module.exports = { loginUser, registerUser, logout };
