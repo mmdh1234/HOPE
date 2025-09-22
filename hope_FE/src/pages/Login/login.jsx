@@ -31,12 +31,13 @@ const LoginPage = () => {
             }
             if (data.token) {
                 console.log(data);
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('userName', data.user.username);
-                localStorage.setItem('userId', data.user.id);
+                sessionStorage.setItem('token', data.token);
+                sessionStorage.setItem('userName', data.user.username);
+                sessionStorage.setItem('userId', data.user.id);
+
 
             }
-            localStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('isLoggedIn', 'true');
             navigate('/main');
         } catch (error) {
             alert('서버 오류: ' + error.message);

@@ -49,7 +49,7 @@ const LearnDetailPage = () => {
         // ... (fetchCourseData 로직은 변경 없습니다)
         const fetchCourseData = async () => {
             setIsLoading(true);
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             try {
                 const courseRes = await fetch(`/api/courses/${materialId}`, { headers: { 'Authorization': `Bearer ${token}` } });
                 if (!courseRes.ok) throw new Error('강좌 정보를 가져올 수 없습니다.');

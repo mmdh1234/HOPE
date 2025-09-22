@@ -6,8 +6,8 @@ import styled from 'styled-components';
 const CardContainer = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 2rem;
-
+  row-gap: 4rem;    
+  column-gap: 2rem;
   a {
     text-decoration: none;
     color: inherit;

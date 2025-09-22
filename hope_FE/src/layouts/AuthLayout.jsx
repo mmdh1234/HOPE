@@ -3,7 +3,7 @@ import { Outlet, Navigate } from 'react-router-dom';
 
 const AuthLayout = () => {
     // localStorage에서 로그인 상태를 가져옵니다.
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
 
     // 만약 이미 로그인된 상태라면, 바로 '/main' 경로로 이동시킵니다.
     if (isLoggedIn) {
