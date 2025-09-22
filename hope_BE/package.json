@@ -23,6 +23,7 @@
         "mammoth": "^1.10.0",
         "mongoose": "^8.17.1",
         "multer-gridfs-storage": "^5.0.2",
+        "office-text-extractor": "^3.0.3",
         "pdf-parse": "^1.1.1",
         "pdf.js-extract": "^0.2.1"
     },

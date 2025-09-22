@@ -9,7 +9,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
     (config) => {
         // 로컬 스토리지에서 토큰 가져오기
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         if (token) {
             // 토큰이 있으면 Authorization 헤더에 추가
             config.headers.Authorization = `Bearer ${token}`;
@@ -36,7 +36,7 @@ export const deleteQuiz = (quizId) => apiClient.delete(`/quizzes/${quizId}`);
 
 // --- 강좌 API 함수들 ---
 export const getMyCourses = () => {
-    const userId = localStorage.getItem('userId');
+    const userId = sessionStorage.getItem('userId');
     if (!userId) {
         // userId가 없으면 Promise.reject를 반환하여 에러 처리
         return Promise.reject(new Error('사용자 ID를 찾을 수 없습니다.'));
@@ -66,7 +66,7 @@ export const updateMyCourseProgress = (
     { currentPage, totalPages }
 ) => {
     // 👇 1. 로컬 스토리지에서 현재 로그인한 사용자의 ID를 가져옵니다.
-    const userId = localStorage.getItem('userId');
+    const userId = sessionStorage.getItem('userId');
 
     // 👇 2. API 요청 본문에 totalPages 대신 백엔드가 요구하는 userId를 담아서 보냅니다.
     //    이제 백엔드의 규칙과 정확히 일치하게 됩니다.
@@ -74,4 +74,33 @@ export const updateMyCourseProgress = (
         currentPage,
         userId,
     });
+};
+
+// --- 모델 API 함수들 ---
+export const startModel = async () => {
+    console.log('🚀 [API] /model/test/start 요청 시도...');
+    try {
+        const response = await apiClient.post('/model/test/start');
+        // 성공 시, 받은 응답 전체와 실제 데이터를 콘솔에 출력합니다.
+        console.log('✅ [API] 모델 시작 성공! 응답:', response);
+        console.log('📦 [API] 모델 시작 시 받은 데이터:', response.data);
+        return response; // 응답을 반환하여 컴포넌트에서도 사용할 수 있게 합니다.
+    } catch (error) {
+        // 실패 시, 에러 객체를 콘솔에 출력합니다.
+        console.error('❌ [API] 모델 시작 실패:', error.response || error);
+        throw error; // 에러를 다시 던져서 컴포넌트에서 실패를 인지할 수 있게 합니다.
+    }
+};
+
+export const stopModel = async () => {
+    console.log('🚀 [API] /model/test/stop 요청 시도...');
+    try {
+        const response = await apiClient.post('/model/test/stop');
+        console.log('✅ [API] 모델 중지 성공! 응답:', response);
+        console.log('📦 [API] 모델 중지 시 받은 데이터:', response.data);
+        return response;
+    } catch (error) {
+        console.error('❌ [API] 모델 중지 실패:', error.response || error);
+        throw error;
+    }
 };

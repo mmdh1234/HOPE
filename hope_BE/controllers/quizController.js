@@ -4,6 +4,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { PDFExtract } = require('pdf.js-extract');
 const mammoth = require('mammoth');
 const fs = require('fs');
+const { extractText } = require('office-text-extractor');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -13,29 +14,36 @@ const extractTextFromFile = (file) => {
     const filePath = file.path;
     const extension = file.originalname.split('.').pop().toLowerCase();
 
+    // 👇 1. PDF 확장자인지 확인
     if (extension === 'pdf') {
       const pdfExtract = new PDFExtract();
       pdfExtract.extract(filePath, {}, (err, data) => {
-        if (err) return reject(err);
-        const text = data.pages.map(page => 
-            page.content.map(item => item.str).join(' ')
-        ).join('\n');
-        fs.unlinkSync(filePath);
-        resolve(text);
+        // 모든 작업이 끝난 후 파일을 삭제하기 위해 finally 블록으로 이동
+        try {
+          if (err) {
+            return reject(err);
+          }
+          const text = data.pages
+            .map((page) => page.content.map((item) => item.str).join(' '))
+            .join('\n');
+          resolve(text);
+        } finally {
+          // 성공하든 실패하든 파일을 삭제
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        }
       });
-    } else if (extension === 'pptx') {
-      mammoth.extractRawText({ path: filePath })
-        .then(result => {
-          fs.unlinkSync(filePath); 
-          resolve(result.value);
-        })
-        .catch(reject);
     } else {
-      fs.unlinkSync(filePath); 
-      reject(new Error('지원하지 않는 파일 형식입니다.'));
+      // 👇 2. PDF가 아니면 에러 처리 후 파일 삭제
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      reject(new Error('PDF 파일 형식만 지원합니다.'));
     }
   });
 };
+
 
 // Gemini API로 퀴즈 생성 part여---
 const generateQuizWithGemini = async (text) => {
@@ -45,7 +53,7 @@ const generateQuizWithGemini = async (text) => {
     각 문제는 questionText, options (4개의 보기 배열), correctAnswer 필드를 가져야 해.
     반드시 유효한 JSON 형식의 배열([])으로만 응답해야 하며, 다른 설명은 포함하지 마.
     ---
-    ${text.substring(0, 8000)}
+    ${text.substring(0, 100000)}
     ---
   `;
   const result = await model.generateContent(prompt);
@@ -60,21 +68,25 @@ exports.createQuiz = async (req, res) => {
     return res.status(400).json({ ok: false, message: '파일이 업로드되지 않았습니다.' });
   }
 
-  try {
-    const text = await extractTextFromFile(req.file);
-    const quizData = await generateQuizWithGemini(text); // quizData는 문제 객체의 배열
+  // 👇 1. DB 저장을 먼저 실행합니다.
+  // 이 시점에는 req.file.originalname이 완벽하게 복원된 상태입니다.
+  const newQuiz = new Quiz({
+    userId: req.user.id,
+    title: req.file.originalname,
+    originalFilename: req.file.originalname,
+    sourceFileUrl: req.file.path,
+  });
 
-    const newQuiz = new Quiz({
-      userId: req.user.id,
-      title: req.file.originalname,
-      originalFilename: req.file.originalname,
-      sourceFileUrl: req.file.path,
-    });
-    await newQuiz.save();
+  try {
+    await newQuiz.save(); // ✨ 깨끗한 한글 제목으로 DB 저장 성공!
+
+    // 👇 2. DB 저장 후에 텍스트 추출 및 Gemini 작업을 진행합니다.
+    const text = await extractTextFromFile(req.file);
+    const quizData = await generateQuizWithGemini(text);
 
     const newQuestionSet = new QuestionSet({
       quizId: newQuiz._id,
-      questions: quizData, // quizData는 배열--> 그대로 사용
+      questions: quizData,
     });
     await newQuestionSet.save();
 
@@ -88,6 +100,8 @@ exports.createQuiz = async (req, res) => {
     });
   } catch (error) {
     console.error('퀴즈 생성 실패:', error);
+    // 만약 텍스트 추출 등에서 오류가 발생하면, 이미 생성된 퀴즈 정보를 삭제해주는 것이 좋습니다.
+    await Quiz.findByIdAndDelete(newQuiz._id); 
     res.status(500).json({ ok: false, message: '서버 오류가 발생했습니다.', error: error.message });
   }
 };

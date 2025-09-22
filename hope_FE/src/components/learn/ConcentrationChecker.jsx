@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { FilesetResolver, FaceLandmarker } from '@mediapipe/tasks-vision';
+import { startModel, stopModel } from '../../api/api'; // API 함수 임포트
 
 // --- 스타일 정의 (기존과 동일) ---
 const CheckerWrapper = styled.div`
@@ -35,14 +36,57 @@ const StatusIndicator = styled.div`
     font-weight: bold;
 `;
 
-// --- 컴포넌트 구현 (수정된 로직) ---
+// --- 컴포넌트 구현 (디버깅 코드 추가) ---
 const ConcentrationChecker = () => {
     const videoRef = useRef(null);
-    const streamRef = useRef(null); // --- 1. 스트림을 저장할 ref 추가 ---
+    const streamRef = useRef(null);
     const requestRef = useRef();
     const [status, setStatus] = useState('모델 로드 중...');
     const [isConcentrating, setIsConcentrating] = useState(true);
     const [faceLandmarker, setFaceLandmarker] = useState(null);
+
+    // 컴포넌트 마운트/언마운트 시 API 호출 (디버깅 코드 추가)
+    useEffect(() => {
+        const handleModelStart = async () => {
+            console.log(
+                '▶️ [Component] ConcentrationChecker가 마운트되어 모델 시작을 시도합니다.'
+            );
+            try {
+                const response = await startModel();
+                console.log(
+                    '✅ [Component] 모델 시작 API 호출 성공!',
+                    response.data
+                );
+            } catch (error) {
+                console.error('❌ [Component] 모델 시작 API 호출 실패:', error);
+                setStatus('모델 시작 오류');
+            }
+        };
+
+        handleModelStart();
+
+        // 컴포넌트가 언마운트될 때 실행될 클린업 함수
+        return () => {
+            const handleModelStop = async () => {
+                console.log(
+                    '⏹️ [Component] ConcentrationChecker가 언마운트되어 모델 중지를 시도합니다.'
+                );
+                try {
+                    const response = await stopModel();
+                    console.log(
+                        '✅ [Component] 모델 중지 API 호출 성공!',
+                        response.data
+                    );
+                } catch (error) {
+                    console.error(
+                        '❌ [Component] 모델 중지 API 호출 실패:',
+                        error
+                    );
+                }
+            };
+            handleModelStop();
+        };
+    }, []); // 빈 배열: 마운트 시 한 번만 실행
 
     // MediaPipe 모델 로드 로직 (기존과 동일)
     useEffect(() => {
@@ -72,7 +116,7 @@ const ConcentrationChecker = () => {
         createFaceLandmarker();
     }, []);
 
-    // 웹캠 켜기 및 예측 로직 (클린업 부분 수정)
+    // 웹캠 켜기 및 예측 로직 (기존과 동일)
     useEffect(() => {
         if (!faceLandmarker) return;
 
@@ -112,7 +156,7 @@ const ConcentrationChecker = () => {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: true,
                 });
-                streamRef.current = stream; // --- 2. 스트림을 ref에 저장 ---
+                streamRef.current = stream;
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
                     videoRef.current.addEventListener(
@@ -128,11 +172,10 @@ const ConcentrationChecker = () => {
 
         enableWebcam();
 
-        // --- 3. 클린업 함수 수정 ---
         return () => {
             cancelAnimationFrame(requestRef.current);
             if (streamRef.current) {
-                streamRef.current.getTracks().forEach((track) => track.stop()); // ref에서 직접 스트림을 가져와 종료
+                streamRef.current.getTracks().forEach((track) => track.stop());
             }
         };
     }, [faceLandmarker]);

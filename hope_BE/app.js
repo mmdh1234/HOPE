@@ -1,3 +1,9 @@
+
+require('dotenv').config();
+
+console.log('GEMINI_API_KEY 로딩 확인:', process.env.GEMINI_API_KEY ? '성공' : '실패');
+console.log('DB_CONNECT 로딩 확인:', process.env.DB_CONNECT ? '성공' : '실패');
+
 const express = require('express');
 const dbConnect = require('./config/dbConnect');
 const path = require('path');
