@@ -58,7 +58,7 @@ const LearnCard = ({ material: course }) => {
         <span>{difficultyMap[course.difficulty] || '미설정'}</span>
         <span>PDF</span>
         <span>{`${course.totalPages || 1}페이지`}</span>
-        <span>{course.studentCount}명 수강</span>
+        {/* <span>{course.studentCount}명 수강</span> */}
       </S.InfoContainer>
 
       {/* 👇 이 버튼은 Link의 일부이므로 별도의 onClick 이벤트가 필요 없습니다. */}

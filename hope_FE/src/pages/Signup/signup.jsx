@@ -54,7 +54,7 @@ const SignupPage = () => {
     };
 
     return (
-        <AuthFormLayout title="코딩나라">
+        <AuthFormLayout title="러닝 브릿지">
             <p>SW와 코딩을 배우고 성장하는 공간</p>
             <AuthTabHeader />
             <Label>이름</Label>
