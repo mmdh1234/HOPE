@@ -6,6 +6,7 @@ const errorhandler = require('./middlewares/errorhandler');
 const quizRoutes = require('./routes/quizRoutes');
 const loginRoutes = require('./routes/loginRoutes');
 const modelRoutes = require('./routes/modelRoutes');
+const { protect } = require('./middlewares/authMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,13 +34,13 @@ app.use(
         ) {
             return next();
         }
-        checkLogin(req, res, next);
+        protect(req, res, next);
     },
     require('./routes/loginRoutes')
 );
 
-app.use('/api/quizzes', quizRoutes);
-app.use('/model', modelRoutes);
+app.use('/api/quizzes', protect, quizRoutes);
+app.use('/model', protect, modelRoutes);
 
 app.use(errorhandler);
 
