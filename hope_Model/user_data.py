@@ -12,9 +12,10 @@ from PIL import ImageFont, ImageDraw, Image
 # 사용자 ID를 명령줄 인자로 받음
 if len(sys.argv) > 1:
     userId = sys.argv[1]
+    action = sys.argv[2]
 else:
     # 에러 메시지를 표준 에러(stderr)로 출력하고 종료
-    print("Error: No userId provided.", file=sys.stderr)
+    print("Error: No userId or action provided.", file=sys.stderr)
     sys.exit(1)
 
 
@@ -427,28 +428,43 @@ load_dotenv()  # .env 파일 로드
 
 DB_CONNECT = os.environ.get("DB_CONNECT") 
 
-def save_to_mongodb(data):
+def save_to_mongodb(data, action):
     # MongoDB Atlas 연결
     client = MongoClient(DB_CONNECT)
     db = client['Signup'] 
     collection = db['user_data']
 
     try:
-        # 기존 데이터 삭제 후 저장
-        collection.delete_many({'userId': data['userId']})
-        collection.insert_one(data)
-        
-        print(f"\n데이터가 MongoDB에 성공적으로 저장되었습니다. (UserId: {data['userId']})")
+        if action == 'update':
+            # userId가 일치하는 문서를 찾아 업데이트
+            # upsert=True: 문서가 없으면 새로 생성
+            result = collection.update_one(
+                {'userId': data['userId']},
+                {'$set': data},
+                upsert=True
+            )
+            # 업데이트 또는 새로 생성 여부에 따라 메시지 변경
+            if result.upserted_id:
+                message = f"새로운 데이터가 MongoDB에 성공적으로 저장되었습니다. (UserId: {data['userId']})"
+            else:
+                message = f"기존 데이터가 MongoDB에서 성공적으로 업데이트되었습니다. (UserId: {data['userId']})"
+            print(message)
+        else: # action == 'create'
+            # 기존 데이터를 삭제하고 새로 저장
+            collection.delete_many({'userId': data['userId']})
+            collection.insert_one(data)
+            print(f"\n새로운 데이터가 MongoDB에 성공적으로 저장되었습니다. (UserId: {data['userId']})")
+
         print(json.dumps({
             "status": "ok",
             "userId": data['userId'],
-            "db": {"db":"Signup","collection":"user_features"},
+            "db": {"db": "Signup", "collection": "user_data"},
             "createdAt": time.time()
         }), flush=True)
 
     except Exception as e:
         print(f"\nMongoDB 저장 중 오류 발생: {e}", file=sys.stderr)
-        print(json.dumps({"status":"error","error": str(e)}), flush=True)
+        print(json.dumps({"status": "error", "error": str(e)}), flush=True)
         sys.exit(1)
     finally:
         client.close()
