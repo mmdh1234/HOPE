@@ -10,7 +10,8 @@ import LearnPage from '../pages/Learn/learn.jsx';
 import QuizPage from '../pages/Quiz/quiz.jsx';
 import QuizListPage from '../pages/QuizList/QuizListPage';
 import ProgressPage from '../pages/Progress/progress.jsx';
-import LearnDetailPage from "../pages/Learn/LearnDetailPage.jsx";
+import LearnDetailPage from '../pages/Learn/LearnDetailPage.jsx';
+import DataCollectionPage from '../pages/DataCollection/DataCollectionPage';
 
 const AppRoutes = () => {
     return (
@@ -31,7 +32,7 @@ const AppRoutes = () => {
                 <Route path="progress" element={<ProgressPage />} />
                 <Route path="learn" element={<LearnPage />} />
                 <Route path="learn/:materialId" element={<LearnDetailPage />} />
-
+                <Route path="collect" element={<DataCollectionPage />} />
             </Route>
 
             <Route path="*" element={<div>404 Not Found</div>} />

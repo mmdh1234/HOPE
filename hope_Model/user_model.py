@@ -5,7 +5,10 @@ import sys
 import io 
 from dotenv import load_dotenv
 import os
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 from pymongo import MongoClient
+from datetime import datetime
 
 
 def eprint(*args, **kwargs):
@@ -67,13 +70,13 @@ try:
             buffer = io.BytesIO(model_bytes)
             buffer.seek(0)
             bundle_to_finetune = joblib.load(buffer)
-            print(f"기존 사용자 맞춤 모델을 불러왔습니다. (UserId: {userId})")
+            eprint(f"기존 사용자 맞춤 모델을 불러왔습니다. (UserId: {userId})")
         except Exception as e:
             eprint(f"경고: 기존 개인 모델 로드 실패 - {e}; 전역 모델로 대체하여 진행합니다.")
             bundle_to_finetune = global_bundle.copy()
     else:
         bundle_to_finetune = global_bundle.copy()
-        print("기존 개인 모델이 없어 전역 모델을 파인튜닝 베이스로 사용합니다.")
+        eprint("기존 개인 모델이 없어 전역 모델을 파인튜닝 베이스로 사용합니다.")
 
     # 2-2) 사용자 데이터 로드: user_data를 저장한 컬렉션명이 환경마다 다를 수 있으니 몇 가지 후보를 시도
     user_data = None
@@ -82,7 +85,7 @@ try:
         doc = col.find_one({'userId': userId})
         if doc:
             user_data = doc
-            print(f"사용자 데이터 로드: 컬렉션 '{colname}'에서 가져왔습니다.")
+            eprint(f"사용자 데이터 로드: 컬렉션 '{colname}'에서 가져왔습니다.")
             break
 
     if not user_data:
@@ -147,7 +150,7 @@ try:
 
     gmm_pos_user.fit(Xu_pos)
     check_is_fitted(gmm_pos_user)
-    print("사용자 GMM 파인튜닝 완료.")
+    eprint("사용자 GMM 파인튜닝 완료.")
 except Exception as e:
     eprint(f"오류: 사용자 GMM 파인튜닝 실패 - {e}")
     if client:
@@ -164,9 +167,9 @@ try:
         log_prior_pos = bundle_to_finetune.get('log_prior_pos', global_bundle.get('log_prior_pos', 0.0))
         synth_scores = gmm_pos_user.score_samples(synth) + float(log_prior_pos)
         oneclass_thresh = float(np.percentile(synth_scores, 5.0))
-        print(f"[One-Class] 새 임계치 계산: {oneclass_thresh:.3f}")
+        eprint(f"[One-Class] 새 임계치 계산: {oneclass_thresh:.3f}")
     else:
-        print("[One-Class] 기존 gmm_neg 존재 — 임계치 갱신은 건너뜁니다.")
+        eprint("[One-Class] 기존 gmm_neg 존재 - 임계치 갱신은 건너뜁니다.")
 except Exception as e:
     eprint(f"[One-Class] 임계치 갱신 중 오류: {e}")
 
@@ -186,15 +189,29 @@ try:
     # DB 저장
     collection = db['user_models']
     result = collection.update_one(
-        {'userId': userId},
-        {'$set': {'modelData': model_data}},
-        upsert=True
-    )
-    print(f"\n사용자 맞춤 GMM이 MongoDB에 저장 완료. (UserId: {userId})")
-    print(json.dumps({"status":"ok","userId": userId, "model_saved": True}), flush=True)
+    {"userId": userId},
+    {
+        "$set": {"modelData": model_data},
+        "$setOnInsert": {"createdAt": datetime.utcnow()},
+        "$currentDate": {"updatedAt": True}
+    },
+    upsert=True
+)
+    eprint(f"사용자 맞춤 GMM이 MongoDB에 저장 완료. (UserId: {userId})")
+    print(json.dumps({
+        "status": "ok",
+        "userId": userId,
+        "model_saved": True
+    }), flush=True)
 
 except Exception as e:
     eprint(f"오류: MongoDB에 모델 저장 실패 - {e}")
+    print(json.dumps({
+        "status": "error",
+        "userId": userId,
+        "model_saved": False,
+        "detail": str(e)
+    }), flush=True)
     sys.exit(1)
 finally:
     if client:
