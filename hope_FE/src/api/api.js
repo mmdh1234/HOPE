@@ -55,9 +55,14 @@ export const deleteCourse = (courseId) => {
  * @returns {Promise<any>}
  */
 
-// '내 강좌'의 진도율을 가져오는 함수
+
 export const getMyCourseProgress = (courseId) => {
-    return apiClient.get(`/courses/${courseId}/my-progress`);
+  const userId = sessionStorage.getItem('userId');
+  return apiClient.get(`/courses/${courseId}/my-progress`, {
+    params: {
+      userId: userId, 
+    },
+  });
 };
 
 // '내 강좌'의 진도율을 업데이트하는 함수

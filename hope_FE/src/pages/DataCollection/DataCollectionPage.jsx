@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import * as S from './DataCollectionPage.style.jsx';
 // ====== Guide & Target Utils ======
 const MARGIN = 0.05;
 function createTargets(startX, startY, endX, endY, cols, rows) {
@@ -467,20 +468,27 @@ export default function DataCollectionPage() {
         };
         rafRef.current = requestAnimationFrame(loop);
     }, [selectedCamId, stopStream]);
+    
     useEffect(() => {
-        (async () => {
-            await listCameras();
-            await initFaceMesh();
-            await startStream();
-        })();
-        return () => stopStream();
+    (async () => {
+        await listCameras();
+        await initFaceMesh();
+        await startStream();
+    })();
+
+    
+    return () => {
+        stopStream();
         if (faceMeshRef.current?.close) {
             try {
                 faceMeshRef.current.close();
             } catch {}
             faceMeshRef.current = null;
         }
-    }, [initFaceMesh, stopStream, listCameras, startStream]);
+    };
+
+
+}, []);
     // 파이프라인 시작
     const startPipeline = useCallback(async () => {
         const token = localStorage.getItem('token');
@@ -549,6 +557,7 @@ export default function DataCollectionPage() {
                     'gR_v',
                 ],
             };
+            const token = sessionStorage.getItem("token");
             const res = await axios.post('/model/userdata/save', payload, {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -602,21 +611,17 @@ export default function DataCollectionPage() {
             error: '오류',
         }[phase] || phase;
     return (
-        <div className="min-h-[100dvh] bg-gray-50 flex items-center justify-center p-6">
-            <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                    {/* ★ 카메라 선택 UI */}
-                    <div className="flex items-center gap-2 mb-3">
-                        <label className="text-sm text-gray-700 min-w-20">
-                            카메라 선택
-                        </label>
-                        <select
+        <S.PageWrapper>
+            <S.MainContainer>
+                <S.VideoContainer>
+                    <S.CameraControl>
+                        <S.CameraLabel>카메라 선택</S.CameraLabel>
+                        <S.CameraSelect
                             value={selectedCamId}
                             onChange={async (e) => {
                                 const id = e.target.value;
                                 setSelectedCamId(id);
                                 localStorage.setItem('preferredCamId', id);
-                                // ★ 선택 즉시 재시작
                                 try {
                                     await startStream();
                                 } catch (err) {
@@ -625,84 +630,62 @@ export default function DataCollectionPage() {
                             }}
                         >
                             {cameras.map((c, i) => (
-                                <option
-                                    key={c.deviceId || i}
-                                    value={c.deviceId}
-                                >
+                                <option key={c.deviceId || i} value={c.deviceId}>
                                     {c.label || `카메라 ${i + 1}`}
                                 </option>
                             ))}
-                        </select>
-                        <button
+                        </S.CameraSelect>
+                        <S.RefreshButton
                             type="button"
                             onClick={listCameras}
-                            className="ml-2 text-sm px-3 py-2 rounded-md border hover:bg-gray-50"
                             title="장치 목록 새로고침"
                         >
                             새로고침
-                        </button>
-                    </div>
-                    <div className="bg-black rounded-2xl overflow-hidden aspect-video relative">
-                        <video
+                        </S.RefreshButton>
+                    </S.CameraControl>
+                    <S.VideoWrapper>
+                        <S.StyledVideo
                             ref={videoRef}
                             playsInline
                             muted
                             autoPlay
-                            style={{ display: 'none' }}
                         />
-                        <canvas
-                            ref={canvasRef}
-                            className="w-full h-full block"
-                        />
-                        <div className="absolute bottom-3 left-3 text-white/90 text-sm bg-black/40 px-3 py-1 rounded">{`상태: ${phaseLabel}`}</div>
-                    </div>
-                </div>
-                <div className="bg-white rounded-2xl shadow p-6">
-                    <p className="text-gray-600 mt-1">
-                        Python 없이 브라우저에서 얼굴/시선 데이터를 수집합니다.
-                        완료되면 자동으로 개인 모델을 학습하고 메인으로
-                        이동합니다.
-                    </p>
-                    <button
-                        onClick={startPipeline}
-                        disabled={disabled}
-                        className={`mt-5 w-full rounded-xl px-4 py-3 text-white font-medium shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed ${
-                            disabled
-                                ? 'bg-gray-400'
-                                : 'bg-indigo-600 hover:bg-indigo-700'
-                        }`}
-                    >
+                        <S.StyledCanvas ref={canvasRef} />
+                        <S.StatusBadge>{`상태: ${phaseLabel}`}</S.StatusBadge>
+                    </S.VideoWrapper>
+                </S.VideoContainer>
+                <S.InfoPanel>
+                    <S.InfoText>
+                        Python 없이 브라우저에서 얼굴/시선 데이터를 수집합니다. 완료되면 자동으로 개인 모델을 학습하고 메인으로 이동합니다.
+                    </S.InfoText>
+                    <S.StartButton onClick={startPipeline} disabled={disabled}>
                         {disabled ? '수집 중…' : '수집 시작'}
-                    </button>
-                    <div className="mt-6">
-                        <div className="text-sm font-semibold text-gray-700 mb-2">
-                            진행 로그
-                        </div>
-                        <div className="h-44 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">
+                    </S.StartButton>
+                    <S.LogSection>
+                        <S.LogTitle>진행 로그</S.LogTitle>
+                        <S.LogBox>
                             {logs.length === 0 ? (
-                                <div className="text-gray-400">
+                                <S.EmptyLogMessage>
                                     아직 로그가 없습니다.
-                                </div>
+                                </S.EmptyLogMessage>
                             ) : (
                                 logs.map((l, i) => (
-                                    <div key={i} className="leading-6">
-                                        {l}
-                                    </div>
+                                    <S.LogMessage key={i}>{l}</S.LogMessage>
                                 ))
                             )}
-                        </div>
-                    </div>
-                    <ul className="mt-6 text-xs text-gray-600 list-disc pl-5">
-                        <li>
+                        </S.LogBox>
+                    </S.LogSection>
+                    <S.BulletList>
+                        <S.ListItem>
                             최소 샘플 30개 이상을 수집합니다. (현재:{' '}
                             {featsRef.current.length})
-                        </li>
-                        <li>
+                        </S.ListItem>
+                        <S.ListItem>
                             카메라 권한을 허용해 주세요. (HTTPS 또는 localhost)
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+                        </S.ListItem>
+                    </S.BulletList>
+                </S.InfoPanel>
+            </S.MainContainer>
+        </S.PageWrapper>
     );
 }
