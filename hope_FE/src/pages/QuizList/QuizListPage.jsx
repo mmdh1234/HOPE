@@ -82,13 +82,13 @@ const QuizListPage = () => {
         <S.UploadArea onDrop={onDrop} onDragOver={onDragOver}>
             <S.UploadIcon>📄</S.UploadIcon>
             <S.UploadText>퀴즈를 만들 파일을 드래그하거나 클릭하여 업로드</S.UploadText>
-            <S.SupportedFilesText>PDF, PPT 파일을 지원합니다.</S.SupportedFilesText>
+            <S.SupportedFilesText>PDF 파일을 지원합니다.</S.SupportedFilesText>
             
             <S.FileInput
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}
-                accept=".pdf,.ppt,.pptx"
+                accept=".pdf"
             />
             
             <S.FileSelectButton type="button" onClick={onFileSelectClick}>

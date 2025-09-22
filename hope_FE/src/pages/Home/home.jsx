@@ -6,7 +6,7 @@ import * as S from './home.style';
 const HomePage = () => {
     const navigate = useNavigate();
 
-    const userName = localStorage.getItem('userName') || '사용자';
+    const userName = sessionStorage.getItem('userName') || '사용자';
     const streakDays = 5;
     const weeklyProgress = 5;
     const weekDays = ['월', '화', '수', '목', '금', '토', '일'];

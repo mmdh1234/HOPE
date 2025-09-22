@@ -26,9 +26,12 @@ const protect = asyncHandler(async (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        console.log(`🛡️  사용자 인증 성공: ${decoded.id}`);
         req.user = await Login.findById(decoded.id).select('-password');
         next();
     } catch (err) {
+        console.error('🛡️  인증 실패:', err);
         return res.status(401).json({ message: '유효하지 않은 토큰입니다.' });
     }
 });
