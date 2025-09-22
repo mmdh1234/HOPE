@@ -34,10 +34,9 @@ const LoginPage = () => {
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('userName', data.user.username);
                 localStorage.setItem('userId', data.user.id);
-
             }
             localStorage.setItem('isLoggedIn', 'true');
-            navigate('/main');
+            navigate('/main/collect');
         } catch (error) {
             alert('서버 오류: ' + error.message);
         }

@@ -169,6 +169,11 @@ gmm_calib = {
     'neg_collect_secs': 12.0,
 }
 
+gmm_calib.update({
+    'finished': False,
+    'finish_show_until': 0.0,  # 끝 메시지 보여줄 시간
+})
+
 samples_X = []
 samples_Y = [] 
 samples_labels = [] 
@@ -376,11 +381,11 @@ while cap.isOpened():
             cv2.circle(final_image, guide_pos, guide_radius, (0, 255, 255), 2)
 
             if current_time > gmm_calib['phase_until']:
-                # 최종 종료
                 gmm_calib['running'] = False
                 gmm_calib['message'] = "캘리브레이션/이탈 수집 완료! 데이터를 저장합니다."
                 gmm_calib['message_end_time'] = current_time + 3.0
-        
+                gmm_calib['finished'] = True
+                gmm_calib['finish_show_until'] = current_time + 1.5
             
     else:
         if not has_face:
@@ -411,6 +416,10 @@ while cap.isOpened():
     if key == ord('q'):
         break
 
+    # 완료 후 1.5초 지나면 자동 종료
+    if gmm_calib.get('finished') and time.time() > gmm_calib.get('finish_show_until', 0):
+        break
+
 output_data = {
     'features': samples_X,
     'labels': samples_labels,
@@ -429,48 +438,54 @@ load_dotenv()  # .env 파일 로드
 DB_CONNECT = os.environ.get("DB_CONNECT") 
 
 def save_to_mongodb(data, action):
-    # MongoDB Atlas 연결
     client = MongoClient(DB_CONNECT)
     db = client['Signup'] 
     collection = db['user_data']
 
     try:
         if action == 'update':
-            # userId가 일치하는 문서를 찾아 업데이트
-            # upsert=True: 문서가 없으면 새로 생성
             result = collection.update_one(
                 {'userId': data['userId']},
                 {'$set': data},
                 upsert=True
             )
-            # 업데이트 또는 새로 생성 여부에 따라 메시지 변경
             if result.upserted_id:
                 message = f"새로운 데이터가 MongoDB에 성공적으로 저장되었습니다. (UserId: {data['userId']})"
             else:
                 message = f"기존 데이터가 MongoDB에서 성공적으로 업데이트되었습니다. (UserId: {data['userId']})"
-            print(message)
-        else: # action == 'create'
-            # 기존 데이터를 삭제하고 새로 저장
+            print(message, file=sys.stderr)  # ← stdout 말고 stderr로
+        else:  # action == 'create'
             collection.delete_many({'userId': data['userId']})
             collection.insert_one(data)
-            print(f"\n새로운 데이터가 MongoDB에 성공적으로 저장되었습니다. (UserId: {data['userId']})")
+            print(f"\n새로운 데이터가 MongoDB에 성공적으로 저장되었습니다. (UserId: {data['userId']})", file=sys.stderr)
 
-        print(json.dumps({
-            "status": "ok",
-            "userId": data['userId'],
-            "db": {"db": "Signup", "collection": "user_data"},
-            "createdAt": time.time()
-        }), flush=True)
+        # ⚠️ 여기에 있던 JSON 출력은 삭제(또는 stderr로). 최종 JSON은 메인에서 한 번만 찍습니다.
 
     except Exception as e:
         print(f"\nMongoDB 저장 중 오류 발생: {e}", file=sys.stderr)
+        # 이 에러 JSON은 유지해도 되지만, 어차피 exit(1)이므로 컨트롤러가 실패로 처리합니다.
         print(json.dumps({"status": "error", "error": str(e)}), flush=True)
         sys.exit(1)
     finally:
         client.close()
 
+# (유효성 체크 추천)
+if not samples_X or len(samples_X) < 30:
+    print(f"Error: Not enough samples collected (n={len(samples_X)}).", file=sys.stderr)
+    sys.exit(1)
 
+# 실제 저장
+save_to_mongodb(output_data, action)
 
+# ★ stdout엔 '최종 JSON 1줄'만! (백엔드가 이걸 파싱)
+print(json.dumps({
+    "status": "ok",
+    "userId": userId,
+    "saved": True
+}), flush=True)
+
+# 자원 정리 및 정상 종료
 cap.release()
 cv2.destroyAllWindows()
 face_mesh.close()
+sys.exit(0)

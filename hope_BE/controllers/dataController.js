@@ -1,54 +1,125 @@
+// hope_BE/controllers/dataController.js
 const { spawn } = require('child_process');
 const path = require('path');
-const fs = require('fs').promises;
+const mongoose = require('mongoose');
 const Feature = require('../models/userdata');
 
-exports.collect = async (req, res) => {
-    const userId = String(req.user.id);
-    if (!userId)
-        return res.status(400).json({ message: '잘못된 userId입니다' });
-
-    const script = path.join(__dirname, '../../hope_Model/user_data.py');
-    const py = spawn('python', ['-u', script, userId], {
-        stdio: ['ignore', 'pipe', 'pipe'],
-    });
-
-    let stdout = '';
-    let stderr = '';
-    py.stdout.setEncoding('utf8');
-    py.stderr.setEncoding('utf8');
-
-    py.stdout.on('data', (d) => (stdout += d));
-    py.stderr.on('data', (d) => (stderr += d));
-
-    py.on('error', (err) => {
-        console.error('Python 프로세스 실행 오류', err);
-        return res.status(500).json({
-            message: 'Python 프로세스 실행 오류',
-            detail: err.message,
+function runPy(script, args = []) {
+    return new Promise((resolve, reject) => {
+        const py = spawn('python', ['-u', script, ...args], {
+            cwd: path.dirname(script), // 👈 실행 디렉토리를 script가 있는 폴더로 고정
+            stdio: ['ignore', 'pipe', 'pipe'],
         });
+        let stdout = '',
+            stderr = '';
+        py.stdout.setEncoding('utf8');
+        py.stderr.setEncoding('utf8');
+        py.stdout.on('data', (d) => (stdout += d));
+        py.stderr.on('data', (d) => (stderr += d));
+        py.on('error', (err) => reject({ stage: 'spawn', err }));
+        py.on('close', (code) =>
+            code === 0
+                ? resolve({ stdout, stderr })
+                : reject({ stage: 'exit', code, stdout, stderr })
+        );
     });
+}
 
-    py.on('close', async (code) => {
-        if (code !== 0) {
-            console.error('Python 스크립트 오류 출력', stderr);
+exports.saveFromWeb = async (req, res) => {
+    const userId = String(req.user.id);
+    const {
+        features,
+        labels,
+        feature_schema_id = 'v3_iris_7_features',
+        feat_names,
+    } = req.body || {};
+
+    if (!userId) return res.status(400).json({ message: '잘못된 userId' });
+
+    // 기본 유효성
+    if (!Array.isArray(features) || !Array.isArray(labels)) {
+        return res
+            .status(400)
+            .json({ message: 'features/labels가 배열이 아닙니다.' });
+    }
+    if (features.length !== labels.length) {
+        return res
+            .status(400)
+            .json({ message: 'features와 labels 길이가 다릅니다.' });
+    }
+    if (features.length < 30) {
+        return res.status(400).json({ message: '샘플 부족(최소 30)' });
+    }
+
+    // (선택) 각 feature 차원 검사: 7D인지
+    const dimOk = features.every(
+        (f) => Array.isArray(f) && f.length === 7 && f.every(Number.isFinite)
+    );
+    if (!dimOk) {
+        return res
+            .status(400)
+            .json({ message: '각 feature는 길이 7의 숫자 배열이어야 합니다.' });
+    }
+
+    try {
+        // 1) DB upsert (Python과 동일 컬렉션명)
+        const doc = {
+            userId,
+            features,
+            labels,
+            feature_schema_id,
+            feat_names: feat_names || [
+                'ear_l',
+                'ear_r',
+                'pitch',
+                'gL_h',
+                'gR_h',
+                'gL_v',
+                'gR_v',
+            ],
+        };
+        await Feature.updateOne(
+            { userId },
+            {
+                $set: doc,
+                $setOnInsert: { createdAt: new Date() },
+                $currentDate: { updatedAt: true },
+            },
+            { upsert: true }
+        );
+
+        // 2) 학습 실행 (동기)
+        const modelDir = path.join(__dirname, '../../hope_Model');
+        const r = await runPy(path.join(modelDir, 'user_model.py'), [
+            userId,
+            'train',
+        ]);
+
+        // 3) 성공 판정
+        let ok = false;
+        try {
+            const j = JSON.parse((r.stdout || '').trim());
+            ok = j?.status === 'ok' || j?.model_saved;
+        } catch {
+            ok = /USERMODEL_OK/i.test(r.stdout || '');
+        }
+        if (!ok) {
+            console.error('❌ user_model.py stderr:', r.stderr);
             return res.status(500).json({
-                message: 'Python 스크립트 오류 출력',
-                detail: stderr || code,
+                message: '모델 학습 실패',
+                detail: r.stdout || r.stderr,
             });
         }
 
-        // 파이썬은 성공 시 stdout에 JSON을 출력하도록 함
-        try {
-            const out = JSON.parse(stdout);
-            // out should contain { status: 'ok', userId, docId, filePath }
-            // 파일 저장 위치를 응답에 포함시키도록 user_data.py에 구현
-            return res.status(200).json(out);
-        } catch (e) {
-            console.error('JSON 구문 분석 오류', e, 'stdout:', stdout);
-            return res
-                .status(500)
-                .json({ message: '잘못된 Python 출력', detail: stdout });
-        }
-    });
+        return res.json({ ok: true, next: '/main' });
+    } catch (e) {
+        console.error('❌ saveFromWeb 오류 상세:', e);
+        return res.status(500).json({
+            message: '저장/학습 파이프라인 오류',
+            detail: e.err?.message || e.message,
+            ...(e.code
+                ? { code: e.code, stdout: e.stdout, stderr: e.stderr }
+                : {}),
+        });
+    }
 };
