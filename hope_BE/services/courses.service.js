@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 const { GridFSBucket } = require('mongodb');
+const asyncHandler = require('express-async-handler');
 const pdfParse = require('pdf-parse');
 
 async function createCourse(req, res, next) {
@@ -133,17 +134,46 @@ async function updateCourse(req, res, next) {
 	}
 }
 
-async function deleteCourse(req, res, next) {
-	try {
-		const { courseId } = req.params;
-		if (!mongoose.isValidObjectId(courseId)) return res.status(400).json({ message: 'Invalid courseId' });
-		const deleted = await Course.findByIdAndDelete(courseId);
-		if (!deleted) return res.status(404).json({ message: 'Course not found' });
-		res.json({ ok: true });
-	} catch (err) {
-		next(err);
-	}
-}
+const deleteCourse = asyncHandler(async (req, res) => {
+    const { courseId } = req.params;
+
+    // 1. 삭제할 강좌 정보 조회
+    const course = await Course.findById(courseId);
+
+    if (!course) {
+        res.status(404);
+        throw new Error('해당 강좌를 찾을 수 없습니다.');
+    }
+
+    // (선택 사항) 현재 로그인한 사용자가 강좌 생성자인지 확인하는 권한 체크 로직
+    // if (course.user.toString() !== req.user.id) {
+    //     res.status(401);
+    //     throw new Error('강좌를 삭제할 권한이 없습니다.');
+    // }
+
+    // 2. GridFS에서 PDF 파일 삭제
+    // pdfFileId가 존재할 경우에만 실행
+    if (course.pdfFileId) {
+        const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+            bucketName: 'pdfs',
+        });
+        // GridFS의 delete 메소드는 존재하지 않는 id에 대해 에러를 던질 수 있으므로 try-catch로 감싸는 것이 더 안전합니다.
+        try {
+            await bucket.delete(new mongoose.Types.ObjectId(course.pdfFileId));
+        } catch (error) {
+            console.error(`GridFS 파일 삭제 실패 (fileId: ${course.pdfFileId}):`, error.message);
+            // 여기서 에러를 던지지 않고 계속 진행하여 나머지 데이터는 삭제되도록 할 수 있습니다.
+        }
+    }
+
+    // 3. 이 강좌와 관련된 모든 수강 정보(Enrollments) 삭제
+    await Enrollment.deleteMany({ course: courseId });
+
+    // 4. 마지막으로 강좌 데이터 삭제
+    await course.deleteOne(); // 최신 Mongoose 문법
+
+    res.status(200).json({ message: '강좌가 성공적으로 삭제되었습니다.' });
+});
 
 // GridFS에서 코스 PDF 스트리밍
 async function streamCoursePdf(req, res, next) {

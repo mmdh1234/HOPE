@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+// 👇 useLocation 훅을 추가로 import 합니다.
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { updateMyCourseProgress } from '../../api/api';
 import * as S from './LearnDetailPage.style';
 import ConcentrationChecker from '../../components/learn/ConcentrationChecker';
 
@@ -12,19 +14,39 @@ pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 const LearnDetailPage = () => {
     const { materialId } = useParams();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const location = useLocation(); // 👈 location 객체를 가져옵니다.
 
     const [course, setCourse] = useState(null);
     const [pdfUrl, setPdfUrl] = useState(null);
     const [numPages, setNumPages] = useState(null);
-    const [pageNumber, setPageNumber] = useState(1);
+
+    // 🔥 초기 페이지 번호를 location.state에서 가져오거나, 없으면 1로 설정합니다.
+    const [pageNumber, setPageNumber] = useState(location.state?.startPage || 1);
+
     const [isLoading, setIsLoading] = useState(true);
-    
-    // --- 1. 집중도 체커를 켜고 끄는 상태를 추가합니다 ---
     const [isCheckerActive, setIsCheckerActive] = useState(false);
 
+    const { mutate: updateProgress } = useMutation({
+        mutationFn: (variables) => updateMyCourseProgress(materialId, variables),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['myCourses'] });
+        },
+        onError: (error) => {
+            console.error('진도율 업데이트에 실패했습니다:', error);
+        },
+    });
 
-    // (데이터 로딩 useEffect 등 다른 로직은 모두 동일합니다)
+    // 딜레이 없는 즉시 업데이트 useEffect
     useEffect(() => {
+        if (numPages && numPages > 0) {
+            updateProgress({ currentPage: pageNumber, totalPages: numPages });
+        }
+    }, [pageNumber, numPages]);
+
+    // 데이터 로딩 로직 (기존과 동일)
+    useEffect(() => {
+        // ... (fetchCourseData 로직은 변경 없습니다)
         const fetchCourseData = async () => {
             setIsLoading(true);
             const token = localStorage.getItem('token');
@@ -38,7 +60,6 @@ const LearnDetailPage = () => {
                 if (!pdfRes.ok) throw new Error('PDF 파일을 가져올 수 없습니다.');
                 const pdfBlob = await pdfRes.blob();
                 setPdfUrl(URL.createObjectURL(pdfBlob));
-
             } catch (error) {
                 console.error("Failed to load course:", error);
                 alert(error.message);
@@ -66,6 +87,7 @@ const LearnDetailPage = () => {
 
     const progress = numPages ? Math.round((pageNumber / numPages) * 100) : 0;
 
+    // ... (JSX 렌더링 부분은 변경 없습니다)
     if (isLoading) {
         return <S.LoadingText>학습 자료를 불러오는 중입니다...</S.LoadingText>;
     }
@@ -75,15 +97,12 @@ const LearnDetailPage = () => {
             <S.Header>
                 <S.HeaderTop>
                     <S.BackButton onClick={() => navigate('/main/learn')}>← 목록으로</S.BackButton>
-                    
-                    {/* --- 2. 토글 버튼을 추가합니다 --- */}
-                    <S.CheckerToggleButton 
+                    <S.CheckerToggleButton
                         isActive={isCheckerActive}
                         onClick={() => setIsCheckerActive(!isCheckerActive)}
                     >
                         {isCheckerActive ? '집중도 체크 끄기' : '집중도 체크 켜기'}
                     </S.CheckerToggleButton>
-
                 </S.HeaderTop>
                 <S.Title>{course?.title}</S.Title>
                 <S.Description>{course?.description}</S.Description>
@@ -92,7 +111,6 @@ const LearnDetailPage = () => {
                 </S.MetaInfo>
             </S.Header>
 
-            {/* ... (PdfViewerContainer 및 Footer JSX는 기존과 동일) ... */}
             <S.PdfViewerContainer>
                 <S.PaginationControls>
                     <S.NavButton onClick={goToPrevPage} disabled={pageNumber <= 1}>이전</S.NavButton>
@@ -123,8 +141,6 @@ const LearnDetailPage = () => {
                 </S.ProgressInfo>
             </S.Footer>
 
-
-            {/* --- 3. isCheckerActive 상태가 true일 때만 ConcentrationChecker를 렌더링합니다 --- */}
             {isCheckerActive && <ConcentrationChecker />}
         </S.PageWrapper>
     );

@@ -31,21 +31,31 @@ export const ErrorMessage = styled.p`
 
 // HomePage의 Card 스타일을 리스트 아이템에 맞게 변형
 export const QuizListItem = styled.div`
-  background-color: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-  margin-bottom: 1rem;
-  cursor: pointer;
+  display: flex; /* 자식 요소들을 가로로 배치 */
+  justify-content: space-between; /* 자식 요소들 사이에 공간을 만듦 */
+  align-items: center; /* 세로 중앙 정렬 */
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.2s;
 
   &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    background-color: #f9f9f9;
   }
+`;
 
-  h3 { margin: 0 0 8px 0; }
-  p { margin: 0; color: #666; }
+export const DeleteButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: #868e96;
+  padding: 8px;
+  border-radius: 50%;
+  
+  &:hover {
+    background-color: #f1f3f5;
+    color: #ff6b6b;
+  }
 `;
 
 export const UploadArea = styled.div`
