@@ -131,8 +131,3 @@ export const NoCoursesText = styled.p`
     background-color: #f8f9fa;
     border-radius: 10px;
 `;
-
-export const CircularProgressWrapper = styled.div`
-     width: 150px; /* 👈 120px에서 150px로 수정 */
-    height: 150px;
-`;
