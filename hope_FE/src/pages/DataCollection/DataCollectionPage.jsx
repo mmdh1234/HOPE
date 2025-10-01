@@ -25,7 +25,7 @@ function snakeOrder(pts, cols, rows) {
     }
     return out;
 }
-// 파이썬에선 2x2를 썼지만, 필요하면 3x3로 바꿔도 됨
+// 2x2 그리드
 const TARGETS_CENTER = snakeOrder(
     createTargets(MARGIN, MARGIN, 1 - MARGIN, 1 - MARGIN, 2, 2),
     2,
@@ -89,7 +89,7 @@ export default function DataCollectionPage() {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const faceMeshRef = useRef(null);
-    // ★ 캘리브레이션 상태 컨테이너
+    // 캘리브레이션 상태 컨테이너
     const calibRef = useRef({
         running: false,
         phase: 'idle',
@@ -111,7 +111,7 @@ export default function DataCollectionPage() {
     const [phase, setPhase] = useState('idle');
     const [disabled, setDisabled] = useState(false);
     const [logs, setLogs] = useState([]);
-    // ★ 카메라 선택 상태
+    // 카메라 선택 상태
     const [cameras, setCameras] = useState([]);
     const [selectedCamId, setSelectedCamId] = useState(
         localStorage.getItem('preferredCamId') || ''
@@ -121,7 +121,7 @@ export default function DataCollectionPage() {
             setLogs((p) => [...p, `[${new Date().toLocaleTimeString()}] ${m}`]),
         []
     );
-    // ★ 장치 나열
+    // 장치 나열
     const listCameras = useCallback(async () => {
         try {
             const tmp = await navigator.mediaDevices.getUserMedia({
@@ -147,16 +147,8 @@ export default function DataCollectionPage() {
     const featsRef = useRef([]);
     const labelsRef = useRef([]);
     const lastPushAtRef = useRef(0);
-    // 단계 계획
-    // const plan = useRef([
-    // ['center', 2],
-    // ['left', 2],
-    // ['right', 2],
-    // ['head_vertical', 2],
-    // ['head_rotation', 2],
-    // ['head_translation', 2],
-    // ]);
-    // ★ 스트림 관리
+
+    //  스트림 관리
     const streamRef = useRef(null);
     const rafRef = useRef(null);
     const stopStream = useCallback(() => {
@@ -222,17 +214,12 @@ export default function DataCollectionPage() {
                         'head_vertical',
                         'head_rotation',
                         'head_translation',
+                        'forward_backward',
                     ];
                     if (activePhases.includes(p)) {
                         const t = performance.now();
                         if (t - lastPushAtRef.current >= 33) {
-                            // ★ 30fps로 제한
-                            // ★ 소수 4자리로 라운딩하여 JSON 크기 축소
-                            // const rounded = f.map(
-                            //     (n) => Math.round(n * 1e4) / 1e4
-                            // );
                             featsRef.current.push(f);
-                            //featsRef.current.push(rounded);
                             labelsRef.current.push(1);
                             lastPushAtRef.current = t;
                         }
@@ -288,7 +275,7 @@ export default function DataCollectionPage() {
                         const ty = Math.round(target[1] * canvas.height);
                         // 타겟 점
                         ctx.beginPath();
-                        ctx.arc(tx, ty, 10, 0, Math.PI * 2);
+                        ctx.arc(tx, ty, 20, 0, Math.PI * 2);
                         ctx.fillStyle = '#ff0000';
                         ctx.fill();
                         // 고정시간 지나면 다음 타겟
@@ -360,6 +347,22 @@ export default function DataCollectionPage() {
                     );
                     drawGuideCircle(C.lastGuideX, canvas.height / 2, guideR);
                 }
+
+                // forward_backward: 앞뒤 움직임 (원의 크기 변경)
+                if (C.phase === 'forward_backward') {
+                    const t = C.phaseUntil - 5.0;
+                    const progress = now - t;
+                    // 코사인 함수를 이용해 0.75 ~ 1.25 사이를 반복하는 스케일 팩터 생성
+                    const scaleFactor =
+                        Math.cos((progress * 2 * Math.PI) / 5.0) * 0.25 + 1;
+                    const guideSize = (C.initialFaceH || faceH) * scaleFactor;
+                    const dynamicGuideR = Math.round(guideSize / 2);
+                    drawGuideCircle(
+                        canvas.width / 2,
+                        canvas.height / 2,
+                        dynamicGuideR
+                    );
+                }
             }
             // 진행 텍스트 & 메시지
             ctx.fillStyle = '#000';
@@ -373,15 +376,15 @@ export default function DataCollectionPage() {
                 calibRef.current.msg &&
                 performance.now() / 1000 < calibRef.current.msgUntil
             ) {
-                ctx.font = '20px sans-serif';
+                ctx.font = '30px sans-serif';
                 const m = calibRef.current.msg;
                 const tw = ctx.measureText(m).width;
                 ctx.fillStyle = 'rgba(0,0,0,0.6)';
                 const padX = 14,
-                    padY = 10;
+                    padY = 5;
                 const x = (canvas.width - tw) / 2 - padX;
                 const y = canvas.height / 2 - 20;
-                ctx.fillRect(x, y - 24, tw + padX * 2, 34);
+                ctx.fillRect(x, y - 29, tw + padX * 2, 44);
                 ctx.fillStyle = '#fff';
                 ctx.fillText(m, x + padX, y);
             }
@@ -423,7 +426,7 @@ export default function DataCollectionPage() {
         if (name !== 'head_vertical') C.lastGuideX = 0;
         await new Promise((r) => setTimeout(r, seconds * 1000));
     }, []);
-    // ★ (유일한) startStream: 선택된 deviceId로 열기 + rAF 루프
+    // startStream: 선택된 deviceId로 열기 + rAF 루프
     const startStream = useCallback(async () => {
         stopStream();
         const constraints = selectedCamId
@@ -459,8 +462,16 @@ export default function DataCollectionPage() {
         streamRef.current = stream;
         if (videoRef.current) {
             videoRef.current.srcObject = stream;
-            await videoRef.current.play();
+            try {
+                await videoRef.current.play();
+            } catch (err) {
+                // AbortError는 정상적인 중단이므로 무시하고, 다른 에러만 콘솔에 표시합니다.
+                if (err.name !== 'AbortError') {
+                    console.error('비디오 재생 오류:', err);
+                }
+            }
         }
+
         const loop = async () => {
             if (!faceMeshRef.current || !videoRef.current) return;
             await faceMeshRef.current.send({ image: videoRef.current });
@@ -468,30 +479,27 @@ export default function DataCollectionPage() {
         };
         rafRef.current = requestAnimationFrame(loop);
     }, [selectedCamId, stopStream]);
-    
+
     useEffect(() => {
-    (async () => {
-        await listCameras();
-        await initFaceMesh();
-        await startStream();
-    })();
+        (async () => {
+            await listCameras();
+            await initFaceMesh();
+            await startStream();
+        })();
 
-    
-    return () => {
-        stopStream();
-        if (faceMeshRef.current?.close) {
-            try {
-                faceMeshRef.current.close();
-            } catch {}
-            faceMeshRef.current = null;
-        }
-    };
-
-
-}, []);
+        return () => {
+            stopStream();
+            if (faceMeshRef.current?.close) {
+                try {
+                    faceMeshRef.current.close();
+                } catch {}
+                faceMeshRef.current = null;
+            }
+        };
+    }, []);
     // 파이프라인 시작
     const startPipeline = useCallback(async () => {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         if (!token) return alert('로그인이 필요합니다.');
         setDisabled(true);
         featsRef.current = [];
@@ -517,21 +525,37 @@ export default function DataCollectionPage() {
             await showMsg('얼굴을 화면 오른쪽으로 이동하세요.', 2.0);
             await runTargetPhase('right_gaze', 0.8);
             await showMsg(
-                '시선은 화면, 고개만 위아래로 천천히 움직여주세요.',
+                '시선은 정면, 고개만 위아래로 천천히 움직여주세요.',
                 2.0
             );
             await runTimedPhase('head_vertical', 5.0);
-            await showMsg('시선은 화면, 고개만 좌우로 천천히 회전하세요.', 2.0);
+            await showMsg('시선은 정면, 고개만 좌우로 천천히 회전하세요.', 2.0);
             await runTimedPhase('head_rotation', 5.0);
             await showMsg(
-                '시선은 화면, 얼굴만 좌우 어깨 쪽으로 천천히 이동하세요.',
+                '시선은 정면, 얼굴만 좌우 어깨 쪽으로 천천히 이동하세요.',
                 2.0
             );
             await runTimedPhase('head_translation', 5.0);
+            await showMsg(
+                '시선은 정면, 얼굴을 뒤앞으로 천천히 움직여주세요.',
+                2.0
+            );
+            await runTimedPhase('forward_backward', 5.0);
+
+            stopStream();
+
+            const canvas = canvasRef.current;
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+
+            pushLog('업로드 중입니다...');
             C.running = false;
             C.finished = true;
             C.msg = '캘리브레이션 완료! 업로드합니다.';
             C.msgUntil = performance.now() / 1000 + 1.5;
+
             // 샘플 최소 체크
             if (featsRef.current.length < 30) {
                 pushLog(
@@ -541,11 +565,12 @@ export default function DataCollectionPage() {
                 setDisabled(false);
                 return;
             }
+
             // 업로드
             setPhase('finalizing');
             const payload = {
                 features: featsRef.current,
-                labels: labelsRef.current, // 지금은 1만 넣지만, 필요하면 단계별 0/1도 구분 가능
+                labels: labelsRef.current,
                 feature_schema_id: 'v3_iris_7_features',
                 feat_names: [
                     'ear_l',
@@ -557,13 +582,11 @@ export default function DataCollectionPage() {
                     'gR_v',
                 ],
             };
-            const token = sessionStorage.getItem("token");
             const res = await axios.post('/model/userdata/save', payload, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: { Authorization: `Bearer ${token}` },
                 timeout: 0,
             });
+
             if (res?.data?.ok) {
                 pushLog('개인 모델 학습 완료. 메인으로 이동합니다.');
                 setPhase('done');
@@ -599,13 +622,13 @@ export default function DataCollectionPage() {
     const phaseLabel =
         {
             idle: '대기 중',
-            // gaze 단계 3종 추가
             center_gaze: '중앙(시선 타겟)',
             left_gaze: '좌(시선 타겟)',
             right_gaze: '우(시선 타겟)',
             head_vertical: '고개 상하',
             head_rotation: '고개 좌우 회전',
             head_translation: '얼굴 좌우 이동',
+            forward_backward: '얼굴 앞뒤 이동',
             finalizing: '업로드 중',
             done: '완료',
             error: '오류',
@@ -630,7 +653,10 @@ export default function DataCollectionPage() {
                             }}
                         >
                             {cameras.map((c, i) => (
-                                <option key={c.deviceId || i} value={c.deviceId}>
+                                <option
+                                    key={c.deviceId || i}
+                                    value={c.deviceId}
+                                >
                                     {c.label || `카메라 ${i + 1}`}
                                 </option>
                             ))}
@@ -656,10 +682,15 @@ export default function DataCollectionPage() {
                 </S.VideoContainer>
                 <S.InfoPanel>
                     <S.InfoText>
-                        Python 없이 브라우저에서 얼굴/시선 데이터를 수집합니다. 완료되면 자동으로 개인 모델을 학습하고 메인으로 이동합니다.
+                        사용자 데이터를 수집합니다. 완료되면 홈화면으로
+                        이동합니다.
                     </S.InfoText>
                     <S.StartButton onClick={startPipeline} disabled={disabled}>
-                        {disabled ? '수집 중…' : '수집 시작'}
+                        {phase === 'finalizing'
+                            ? '업로드 중…'
+                            : disabled
+                            ? '수집 중…'
+                            : '수집 시작'}
                     </S.StartButton>
                     <S.LogSection>
                         <S.LogTitle>진행 로그</S.LogTitle>
