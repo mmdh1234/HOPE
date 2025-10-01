@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
-import { FilesetResolver, FaceLandmarker } from '@mediapipe/tasks-vision';
+import { FaceMesh } from '@mediapipe/face_mesh';
 import axios from 'axios';
 
 // --- 스타일 정의 ---
@@ -48,7 +48,6 @@ const IDX = {
     R_EYE_V: [387, 373],
     MOUTH_MAR: [13, 14, 61, 291],
 };
-
 const EMA = (prev, cur, a) => (1 - a) * prev + a * cur;
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const eyeEAR = (lm, idx) => {
@@ -88,17 +87,16 @@ const extract7 = (lm) => {
     const arr = [ear_l, ear_r, head_pitch, gL_h, gR_h, gL_v, gR_v];
     return arr.every(Number.isFinite) ? arr : null;
 };
-
-// **새로 추가된 행렬 연산 유틸리티 함수**
-const dot = (a, b) => a.reduce((sum, val, i) => sum + val * b[i], 0);
 const sub = (a, b) => a.map((val, i) => val - b[i]);
-const transpose = (a) => a[0].map((_, i) => a.map(row => row[i]));
+const transpose = (a) => a[0].map((_, i) => a.map((row) => row[i]));
 const inverse = (M) => {
     const m = M.length;
     const n = M[0].length;
-    if (m !== n) throw new Error("Matrix must be square to be inverted.");
-    const E = M.map(row => row.slice());
-    const I = new Array(m).fill(0).map((_, i) => new Array(m).fill(0).map((_, j) => (i === j ? 1 : 0)));
+    if (m !== n) throw new Error('Matrix must be square to be inverted.');
+    const E = M.map((row) => row.slice());
+    const I = new Array(m)
+        .fill(0)
+        .map((_, i) => new Array(m).fill(0).map((_, j) => (i === j ? 1 : 0)));
     for (let i = 0; i < m; i++) {
         let maxRow = i;
         for (let k = i + 1; k < m; k++) {
@@ -109,7 +107,7 @@ const inverse = (M) => {
         [E[i], E[maxRow]] = [E[maxRow], E[i]];
         [I[i], I[maxRow]] = [I[maxRow], I[i]];
         const pivot = E[i][i];
-        if (Math.abs(pivot) < 1e-12) return null; // 행렬식이 0에 가까우면 역행렬 없음
+        if (Math.abs(pivot) < 1e-12) return null;
         for (let j = i; j < m; j++) E[i][j] /= pivot;
         for (let j = 0; j < m; j++) I[i][j] /= pivot;
         for (let k = 0; k < m; k++) {
@@ -127,7 +125,7 @@ const determinant = (M) => {
     const n = M[0].length;
     if (m !== n) return null;
     if (m === 1) return M[0][0];
-    const temp = M.map(row => row.slice());
+    const temp = M.map((row) => row.slice());
     let det = 1;
     for (let i = 0; i < m; i++) {
         let pivotRow = i;
@@ -154,10 +152,10 @@ const determinant = (M) => {
     return det;
 };
 const mmul = (A, B) => {
-    const rowsA = A.length;
-    const colsA = A[0].length;
-    const rowsB = B.length;
-    const colsB = B[0].length;
+    const rowsA = A.length,
+        colsA = A[0].length,
+        rowsB = B.length,
+        colsB = B[0].length;
     if (colsA !== rowsB) throw new Error('Matrices cannot be multiplied');
     const C = new Array(rowsA).fill(0).map(() => new Array(colsB).fill(0));
     for (let i = 0; i < rowsA; i++) {
@@ -169,47 +167,45 @@ const mmul = (A, B) => {
     }
     return C;
 };
-
-// **gmmScoreSamples 함수 재작성**
 const gmmScoreSamples = (gmm, x) => {
     if (!gmm || !gmm.means || !gmm.covariances || !gmm.weights) {
         return -Infinity;
     }
     const numComponents = gmm.means.length;
     const logLikelihoods = [];
-    const EPS = 1e-6; // 행렬 안정화를 위한 작은 값
-
+    const EPS = 1e-6;
     for (let i = 0; i < numComponents; i++) {
         const mean = gmm.means[i];
         let covArray = gmm.covariances[i];
         const weight = gmm.weights[i];
-
-        // 데이터 클리닝 및 안정화
-        let cov = covArray.map(row => row.map(val => (typeof val === 'number' && isFinite(val) ? val : EPS)));
-        
-        // 대각 원소에 EPS 추가
+        let cov = covArray.map((row) =>
+            row.map((val) =>
+                typeof val === 'number' && isFinite(val) ? val : EPS
+            )
+        );
         for (let j = 0; j < cov.length; j++) {
             cov[j][j] += EPS;
         }
-
         try {
             const det = determinant(cov);
             if (!isFinite(det) || Math.abs(det) < 1e-12) {
                 logLikelihoods.push(-Infinity);
                 continue;
             }
-            
             const invCov = inverse(cov);
             if (!invCov) {
                 logLikelihoods.push(-Infinity);
                 continue;
             }
-
             const diff = sub(x, mean);
-            const mahalanobis = mmul([diff], mmul(invCov, transpose([diff])))[0][0];
-
+            const mahalanobis = mmul(
+                [diff],
+                mmul(invCov, transpose([diff]))
+            )[0][0];
             const dim = x.length;
-            const logProb = -0.5 * (dim * Math.log(2 * Math.PI) + Math.log(det) + mahalanobis);
+            const logProb =
+                -0.5 *
+                (dim * Math.log(2 * Math.PI) + Math.log(det) + mahalanobis);
             logLikelihoods.push(logProb + Math.log(weight));
         } catch (e) {
             console.error('GMM score 계산 중 오류:', e.message);
@@ -217,31 +213,26 @@ const gmmScoreSamples = (gmm, x) => {
             continue;
         }
     }
-
     const maxLogLikelihood = Math.max(...logLikelihoods);
     if (!isFinite(maxLogLikelihood)) {
         return -Infinity;
     }
-
-    const logSumExp = maxLogLikelihood + Math.log(
-        logLikelihoods.reduce((sum, val) => {
-            const term = Math.exp(val - maxLogLikelihood);
-            return isFinite(term) ? sum + term : sum;
-        }, 0)
-    );
-
+    const logSumExp =
+        maxLogLikelihood +
+        Math.log(
+            logLikelihoods.reduce((sum, val) => {
+                const term = Math.exp(val - maxLogLikelihood);
+                return isFinite(term) ? sum + term : sum;
+            }, 0)
+        );
     return logSumExp;
 };
 
 // ====== 파라미터 ======
-const FEAT_DIM = 7;
-const H_ON = 0.3, H_OFF = 0.15;
-const V_ON = 0.45, V_OFF = 0.25;
-const EYE_AR_THRESH = 0.20;
+const EYE_AR_THRESH = 0.2;
 const BLINK_MAX_SEC = 0.5;
 const EYE_CLOSED_SEC = 3.0;
-const EMA_ALPHA = 0.4;
-const BASE_ALPHA = 0.01;
+const DISTRACTED_MIN_SEC = 2.0;
 
 // --- 컴포넌트 구현 ---
 const ConcentrationChecker = () => {
@@ -250,218 +241,199 @@ const ConcentrationChecker = () => {
     const requestRef = useRef();
     const [status, setStatus] = useState('모델 로드 중...');
     const [isConcentrating, setIsConcentrating] = useState(false);
-    const [faceLandmarker, setFaceLandmarker] = useState(null);
+    const [faceMesh, setFaceMesh] = useState(null);
     const [gmmModel, setGmmModel] = useState(null);
     const eyesClosedStartRef = useRef(null);
-    const gHEMARef = useRef(null);
-    const gVEMARef = useRef(null);
-    const baseHRef = useRef(null);
-    const baseVRef = useRef(null);
-    const gazeOffscreenRef = useRef(false);
-    const prevStatusTextRef = useRef("이탈");
+    const prevStatusTextRef = useRef('이탈');
     const prevIsConcentratingRef = useRef(false);
-    let lastVideoTime = -1;
+    const distractedStartRef = useRef(null);
+
+    const onResults = useCallback(
+        (results) => {
+            const lm = results.multiFaceLandmarks?.[0];
+            const hasFace = !!lm;
+
+            let currentStatus = '얼굴을 보여주세요';
+            let currentIsConcentrating = false;
+
+            if (hasFace) {
+                const gmmFeat = extract7(lm);
+                if (gmmFeat && gmmModel) {
+                    const earL = gmmFeat[0];
+                    const earR = gmmFeat[1];
+                    const bothEyesClosed =
+                        earL < EYE_AR_THRESH && earR < EYE_AR_THRESH;
+                    const now = performance.now();
+                    let isBlink = false;
+                    let isDrowsy = false;
+
+                    if (bothEyesClosed) {
+                        if (eyesClosedStartRef.current === null) {
+                            eyesClosedStartRef.current = now;
+                        }
+                        const closedDur =
+                            (now - eyesClosedStartRef.current) / 1000;
+                        isDrowsy = closedDur >= EYE_CLOSED_SEC;
+                        isBlink = closedDur < BLINK_MAX_SEC;
+                    } else {
+                        if (eyesClosedStartRef.current !== null) {
+                            const closedDur =
+                                (now - eyesClosedStartRef.current) / 1000;
+                            isBlink = closedDur < BLINK_MAX_SEC;
+                        }
+                        eyesClosedStartRef.current = null;
+                    }
+
+                    let gmmDecisionFocus = false;
+                    if (!bothEyesClosed && gmmModel.scaler) {
+                        const xScaled = gmmFeat.map(
+                            (val, i) =>
+                                (val - gmmModel.scaler.mean[i]) /
+                                gmmModel.scaler.std[i]
+                        );
+                        let posScore = gmmModel.gmm_pos
+                            ? gmmScoreSamples(gmmModel.gmm_pos, xScaled) +
+                              gmmModel.log_prior_pos
+                            : -Infinity;
+                        let negScore = gmmModel.gmm_neg
+                            ? gmmScoreSamples(gmmModel.gmm_neg, xScaled) +
+                              gmmModel.log_prior_neg
+                            : -Infinity;
+
+                        if (posScore === -Infinity && negScore === -Infinity) {
+                            gmmDecisionFocus = false;
+                        } else if (gmmModel.gmm_pos && gmmModel.gmm_neg) {
+                            gmmDecisionFocus = posScore >= negScore;
+                        } else if (gmmModel.gmm_pos) {
+                            gmmDecisionFocus =
+                                gmmModel.oneclass_thresh &&
+                                posScore >= gmmModel.oneclass_thresh;
+                        }
+                    }
+
+                    if (isDrowsy) {
+                        currentStatus = '졸음 감지!';
+                        currentIsConcentrating = false;
+                        distractedStartRef.current = null; // 졸음 상태일 때 이탈 타이머는 리셋
+                    } else if (gmmDecisionFocus) {
+                        currentStatus = '집중 중';
+                        currentIsConcentrating = true;
+                        distractedStartRef.current = null; // 집중 상태가 되면 이탈 타이머를 리셋
+                    } else {
+                        // GMM이 이탈로 판단했을 때
+                        if (distractedStartRef.current === null) {
+                            // 이탈 상태가 방금 시작되었다면 현재 시간 기록
+                            distractedStartRef.current = now;
+                        }
+
+                        const distractedDur =
+                            (now - distractedStartRef.current) / 1000;
+
+                        if (distractedDur >= DISTRACTED_MIN_SEC) {
+                            // 이탈 상태가 2초 이상 유지되었다면 상태 변경
+                            currentStatus = '이탈';
+                            currentIsConcentrating = false;
+                        } else {
+                            // 2초가 안 되었다면 이전 상태를 잠시 유지 (깜빡임 방지)
+                            currentStatus = prevStatusTextRef.current;
+                            currentIsConcentrating =
+                                prevIsConcentratingRef.current;
+                        }
+                    }
+
+                    if (isBlink) {
+                        currentStatus = prevStatusTextRef.current;
+                        currentIsConcentrating = prevIsConcentratingRef.current;
+                    } else {
+                        prevStatusTextRef.current = currentStatus;
+                        prevIsConcentratingRef.current = currentIsConcentrating;
+                    }
+                }
+            }
+            setStatus(currentStatus);
+            setIsConcentrating(currentIsConcentrating);
+        },
+        [gmmModel]
+    );
 
     useEffect(() => {
-        const loadModels = async () => {
+        const loadAndInit = async () => {
             try {
-                const vision = await FilesetResolver.forVisionTasks(
-                    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm'
-                );
-                const landmarker = await FaceLandmarker.createFromOptions(vision, {
-                    baseOptions: {
-                        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
-                        delegate: 'GPU',
-                    },
-                    runningMode: 'VIDEO',
-                    numFaces: 1,
-                });
-                setFaceLandmarker(landmarker);
-                
                 const userId = sessionStorage.getItem('userId');
                 const token = sessionStorage.getItem('token');
                 if (!token) {
-                    setStatus('로그인 토큰이 없습니다.');
-                    console.error('인증 토큰이 없습니다. 먼저 로그인해주세요.');
+                    setStatus('로그인 토큰 없음');
                     return;
                 }
-
-                setStatus('모델 데이터를 받아오는 중...');
+                setStatus('모델 데이터 로딩 중...');
                 const response = await axios.get(
                     `/model/user_models/${userId}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
+                    { headers: { Authorization: `Bearer ${token}` } }
                 );
-                const transformedGmmModel = {
-                    scaler: response.data.scaler,
-                    gmm_pos: response.data.gmm_pos ? {
-                        means: response.data.gmm_pos.means,
-                        covariances: response.data.gmm_pos.covariances,
-                        weights: response.data.gmm_pos.weights,
-                    } : null,
-                    gmm_neg: response.data.gmm_neg ? {
-                        means: response.data.gmm_neg.means,
-                        covariances: response.data.gmm_neg.covariances,
-                        weights: response.data.gmm_neg.weights,
-                    } : null,
-                    log_prior_pos: response.data.log_prior_pos,
-                    log_prior_neg: response.data.log_prior_neg,
-                    oneclass_thresh: response.data.oneclass_thresh,
-                };
-                setGmmModel(transformedGmmModel);
-                setStatus('카메라 켜는 중...');
+                setGmmModel(response.data);
+                setStatus('얼굴 인식 모델 로딩 중...');
             } catch (error) {
-                console.error('모델 로드 실패:', error.response?.data ? new TextDecoder().decode(error.response.data) : error.message);
+                console.error('모델 로드 실패:', error);
                 setStatus('모델 로드 오류');
+                return;
             }
+
+            const faceMeshInstance = new FaceMesh({
+                locateFile: (file) =>
+                    `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+            });
+            faceMeshInstance.setOptions({
+                maxNumFaces: 1,
+                refineLandmarks: true,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5,
+            });
+            setFaceMesh(faceMeshInstance);
         };
-        loadModels();
+        loadAndInit();
     }, []);
 
-    const predictWebcam = useCallback(() => {
-        const video = videoRef.current;
-        if (!video || !faceLandmarker || !gmmModel) {
-            requestRef.current = requestAnimationFrame(predictWebcam);
-            return;
+    useEffect(() => {
+        if (faceMesh) {
+            faceMesh.onResults(onResults);
         }
-        if (video.currentTime === lastVideoTime) {
-            requestRef.current = requestAnimationFrame(predictWebcam);
-            return;
-        }
-
-        lastVideoTime = video.currentTime;
-        const results = faceLandmarker.detectForVideo(video, performance.now());
-        const lm = results.faceLandmarks?.[0];
-        const hasFace = !!lm;
-        
-        let currentStatus = "얼굴을 보여주세요";
-        let currentIsConcentrating = false;
-
-        if (hasFace) {
-            const gmmFeat = extract7(lm);
-            if (gmmFeat) {
-                const earL = gmmFeat[0];
-                const earR = gmmFeat[1];
-                const bothEyesClosed = (earL < EYE_AR_THRESH && earR < EYE_AR_THRESH);
-                const now = performance.now();
-                let isBlink = false;
-                let isDrowsy = false;
-                if (bothEyesClosed) {
-                    if (eyesClosedStartRef.current === null) {
-                        eyesClosedStartRef.current = now;
-                    }
-                    const closedDur = (now - eyesClosedStartRef.current) / 1000;
-                    isDrowsy = (closedDur >= EYE_CLOSED_SEC);
-                    isBlink = (closedDur < BLINK_MAX_SEC);
-                } else {
-                    if (eyesClosedStartRef.current !== null) {
-                        const closedDur = (now - eyesClosedStartRef.current) / 1000;
-                        isBlink = (closedDur < BLINK_MAX_SEC);
-                    }
-                    eyesClosedStartRef.current = null;
-                }
-
-                let gmmDecisionFocus = false;
-                if (!bothEyesClosed && gmmModel.scaler) {
-                    const gL_h = gmmFeat[3];
-                    const gR_h = gmmFeat[4];
-                    const gL_v = gmmFeat[5];
-                    const gR_v = gmmFeat[6];
-                    const gH = (Math.abs(gL_h) + Math.abs(gR_h)) * 0.5;
-                    const gV = (Math.abs(gL_v) + Math.abs(gR_v)) * 0.5;
-
-                    const xScaled = gmmFeat.map((val, i) =>
-                        (val - gmmModel.scaler.mean[i]) / gmmModel.scaler.std[i]
-                    );
-
-                    let posScore = gmmModel.gmm_pos ? gmmScoreSamples(gmmModel.gmm_pos, xScaled) + gmmModel.log_prior_pos : -Infinity;
-                    let negScore = gmmModel.gmm_neg ? gmmScoreSamples(gmmModel.gmm_neg, xScaled) + gmmModel.log_prior_neg : -Infinity;
-                    
-                    if (posScore === -Infinity && negScore === -Infinity) {
-                        gmmDecisionFocus = false;
-                    } else if (gmmModel.gmm_pos && gmmModel.gmm_neg) {
-                        gmmDecisionFocus = posScore >= negScore;
-                    } else if (gmmModel.gmm_pos) {
-                        gmmDecisionFocus = (gmmModel.oneclass_thresh && posScore >= gmmModel.oneclass_thresh);
-                    }
-                    console.log('xScaled:', xScaled);
-                    console.log('posScore:', posScore, 'negScore:', negScore, 'gmmDecisionFocus:', gmmDecisionFocus);
-                    
-                    if (baseHRef.current === null) {
-                        baseHRef.current = gH;
-                        baseVRef.current = gV;
-                    } else if (gmmDecisionFocus && !gazeOffscreenRef.current) {
-                        baseHRef.current = EMA(baseHRef.current, gH, BASE_ALPHA);
-                        baseVRef.current = EMA(baseVRef.current, gV, BASE_ALPHA);
-                    }
-
-                    const devH = Math.abs(gH - baseHRef.current);
-                    const devV = Math.abs(gV - baseVRef.current);
-                    gHEMARef.current = gHEMARef.current === null ? devH : EMA(gHEMARef.current, devH, EMA_ALPHA);
-                    gVEMARef.current = gVEMARef.current === null ? devV : EMA(gVEMARef.current, devV, EMA_ALPHA);
-                    
-                    if (!gazeOffscreenRef.current) {
-                        if (gHEMARef.current > H_ON || gVEMARef.current > V_ON) {
-                            gazeOffscreenRef.current = true;
-                        }
-                    } else {
-                        if (gHEMARef.current < H_OFF && gVEMARef.current < V_OFF) {
-                            gazeOffscreenRef.current = false;
-                        }
-                    }
-                }
-
-                if (isDrowsy) {
-                    currentStatus = "졸음 감지!";
-                    currentIsConcentrating = false;
-                } else if (gmmDecisionFocus) {
-                    currentStatus = "집중 중";
-                    currentIsConcentrating = true;
-                } else if (gazeOffscreenRef.current) {
-                    currentStatus = "시선 이탈";
-                    currentIsConcentrating = false;
-                } else {
-                    currentStatus = "이탈";
-                    currentIsConcentrating = false;
-                }
-
-                if (isBlink) {
-                    currentStatus = prevStatusTextRef.current;
-                    currentIsConcentrating = prevIsConcentratingRef.current;
-                } else {
-                    prevStatusTextRef.current = currentStatus;
-                    prevIsConcentratingRef.current = currentIsConcentrating;
-                }
-            }
-        }
-        setStatus(currentStatus);
-        setIsConcentrating(currentIsConcentrating);
-        requestRef.current = requestAnimationFrame(predictWebcam);
-    }, [faceLandmarker, gmmModel]);
+    }, [faceMesh, onResults]);
 
     useEffect(() => {
-        if (!faceLandmarker || !gmmModel) return;
-        const enableWebcam = async () => {
+        if (!faceMesh || !gmmModel) return;
+
+        setStatus('카메라 켜는 중...');
+        const video = videoRef.current;
+
+        const startWebcamAndLoop = async () => {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                });
                 streamRef.current = stream;
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                    videoRef.current.onloadedmetadata = () => {
-                        videoRef.current.play();
-                        requestRef.current = requestAnimationFrame(predictWebcam);
-                    };
-                }
+                video.srcObject = stream;
+
+                const predictLoop = async () => {
+                    if (video.readyState >= 3) {
+                        await faceMesh.send({ image: video });
+                    }
+                    requestRef.current = requestAnimationFrame(predictLoop);
+                };
+
+                video.onloadedmetadata = () => {
+                    video.play().catch((err) => {
+                        if (err.name !== 'AbortError')
+                            console.error('비디오 재생 오류:', err);
+                    });
+                    predictLoop();
+                };
             } catch (err) {
                 console.error('웹캠 접근 실패:', err);
                 setStatus('카메라 오류');
-                setIsConcentrating(false);
             }
         };
-        enableWebcam();
+
+        startWebcamAndLoop();
 
         return () => {
             cancelAnimationFrame(requestRef.current);
@@ -469,7 +441,7 @@ const ConcentrationChecker = () => {
                 streamRef.current.getTracks().forEach((track) => track.stop());
             }
         };
-    }, [faceLandmarker, gmmModel, predictWebcam]);
+    }, [faceMesh, gmmModel]);
 
     return (
         <CheckerWrapper>

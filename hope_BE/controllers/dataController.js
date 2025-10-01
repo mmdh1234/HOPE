@@ -3,11 +3,12 @@ const { spawn } = require('child_process');
 const path = require('path');
 const mongoose = require('mongoose');
 const Feature = require('../models/userdata');
+const UserModel = require('../models/userModel');
 
 function runPy(script, args = []) {
     return new Promise((resolve, reject) => {
         const py = spawn('python', ['-u', script, ...args], {
-            cwd: path.dirname(script), // 👈 실행 디렉토리를 script가 있는 폴더로 고정
+            cwd: path.dirname(script),
             stdio: ['ignore', 'pipe', 'pipe'],
         });
         let stdout = '',
@@ -51,7 +52,7 @@ exports.saveFromWeb = async (req, res) => {
         return res.status(400).json({ message: '샘플 부족(최소 30)' });
     }
 
-    // (선택) 각 feature 차원 검사: 7D인지
+    // 각 feature 차원 검사: 7D인지
     const dimOk = features.every(
         (f) => Array.isArray(f) && f.length === 7 && f.every(Number.isFinite)
     );
@@ -62,7 +63,7 @@ exports.saveFromWeb = async (req, res) => {
     }
 
     try {
-        // 1) DB upsert (Python과 동일 컬렉션명)
+        // 1) DB upsert
         const doc = {
             userId,
             features,
@@ -97,25 +98,59 @@ exports.saveFromWeb = async (req, res) => {
 
         // 3) 성공 판정
         let ok = false;
+        // 3) Python 스크립트의 출력(stdout)을 파싱하여 DB에 저장
         try {
-            const j = JSON.parse((r.stdout || '').trim());
-            ok = j?.status === 'ok' || j?.model_saved;
-        } catch {
-            ok = /USERMODEL_OK/i.test(r.stdout || '');
-        }
-        if (!ok) {
-            console.error('❌ user_model.py stderr:', r.stderr);
+            const modelJsonString = r.stdout.trim();
+            if (!modelJsonString) {
+                // 스크립트에서 아무 출력도 없는 경우 에러 처리
+                throw new Error('Python 스크립트에서 모델 출력이 없습니다.');
+            }
+            const modelData = JSON.parse(modelJsonString);
+
+            // Python 스크립트 내에서 에러가 발생했는지 확인
+            if (modelData.status === 'error') {
+                throw new Error(
+                    `모델 학습 실패: ${modelData.detail || '알 수 없는 오류'}`
+                );
+            }
+
+            // MongoDB의 'user_models' 컬렉션에 모델 데이터 저장 (upsert: true 사용)
+            await UserModel.updateOne(
+                { userId: userId },
+                {
+                    $set: {
+                        modelData: modelData,
+                        meta: {
+                            trainedAt: new Date(),
+                            schema: feature_schema_id,
+                        },
+                    },
+                    $setOnInsert: { createdAt: new Date() },
+                    $currentDate: { updatedAt: true },
+                },
+                { upsert: true }
+            );
+        } catch (parseError) {
+            console.error(
+                '❌ Python 스크립트 출력 파싱 또는 DB 저장 실패:',
+                parseError.message
+            );
+            console.error('--- Python stdout ---');
+            console.error(r.stdout);
+            console.error('--- Python stderr ---');
+            console.error(r.stderr);
+            console.error('---------------------');
             return res.status(500).json({
-                message: '모델 학습 실패',
-                detail: r.stdout || r.stderr,
+                message: '모델 학습 결과 처리 실패',
+                detail: r.stderr || r.stdout || '파이썬 스크립트 실행 오류',
             });
         }
 
         return res.json({ ok: true, next: '/main' });
     } catch (e) {
-        console.error('❌ saveFromWeb 오류 상세:', e);
+        console.error('❌ saveFromWeb 파이프라인 오류 상세:', e);
         return res.status(500).json({
-            message: '저장/학습 파이프라인 오류',
+            message: '저장/학습 파이프라인 전체 오류',
             detail: e.err?.message || e.message,
             ...(e.code
                 ? { code: e.code, stdout: e.stdout, stderr: e.stderr }

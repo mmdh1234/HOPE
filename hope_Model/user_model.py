@@ -9,7 +9,7 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 from pymongo import MongoClient
 from datetime import datetime
-
+import json
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -175,42 +175,43 @@ except Exception as e:
 
 # 6) 사용자 번들(모델) 저장: 기존 개인 모델이 있으면 덮어쓰기
 try:
-    # 저장할 번들을 'bundle_to_finetune' 기반으로 업데이트하여 기존 메타데이터 보존
-    user_bundle = bundle_to_finetune.copy()
-    user_bundle['gmm_pos'] = gmm_pos_user
-    user_bundle['oneclass_thresh_emp'] = oneclass_thresh
+    # Node.js에서 바로 사용할 수 있는 JSON 호환 딕셔너리 생성
+    final_model_json = {
+        "scaler": {
+            "mean": scaler.mean_.tolist() if hasattr(scaler, 'mean_') else None,
+            "std": scaler.scale_.tolist() if hasattr(scaler, 'scale_') else None
+        },
+        "gmm_pos": {
+            "means": gmm_pos_user.means_.tolist(),
+            "covariances": gmm_pos_user.covariances_.tolist(),
+            "weights": gmm_pos_user.weights_.tolist()
+        },
+        # gmm_neg는 파인튜닝하지 않았으므로 전역 모델의 것을 그대로 사용
+        "gmm_neg": {
+            "means": gmm_neg_global.means_.tolist(),
+            "covariances": gmm_neg_global.covariances_.tolist(),
+            "weights": gmm_neg_global.weights_.tolist()
+        } if gmm_neg_global is not None else None,
+        
+        "log_prior_pos": global_bundle.get('log_prior_pos'),
+        "log_prior_neg": global_bundle.get('log_prior_neg'),
+        "oneclass_thresh": oneclass_thresh
+    }
 
-    # 직렬화
-    buffer = io.BytesIO()
-    joblib.dump(user_bundle, buffer)
-    buffer.seek(0)
-    model_data = buffer.getvalue()
-
-    # DB 저장
-    collection = db['user_models']
-    result = collection.update_one(
-    {"userId": userId},
-    {
-        "$set": {"modelData": model_data},
-        "$setOnInsert": {"createdAt": datetime.utcnow()},
-        "$currentDate": {"updatedAt": True}
-    },
-    upsert=True
-)
-    eprint(f"사용자 맞춤 GMM이 MongoDB에 저장 완료. (UserId: {userId})")
-    print(json.dumps({
-        "status": "ok",
-        "userId": userId,
-        "model_saved": True
-    }), flush=True)
+    # 완성된 JSON 문자열을 표준 출력(stdout)으로 print
+    # Node.js의 dataController에서 이 출력을 받아 처리하게 됩니다.
+    print(json.dumps(final_model_json, indent=4))
+    
+    eprint(f"사용자 맞춤 모델이 JSON 형태로 성공적으로 출력되었습니다. (UserId: {userId})")
 
 except Exception as e:
-    eprint(f"오류: MongoDB에 모델 저장 실패 - {e}")
+    eprint(f"오류: 최종 모델을 JSON으로 변환하거나 출력하는 데 실패 - {e}")
+    # 실패 시 Node.js가 알 수 있도록 에러 메시지를 JSON 형태로 출력
     print(json.dumps({
         "status": "error",
         "userId": userId,
         "model_saved": False,
-        "detail": str(e)
+        "detail": f"JSON 변환 실패: {str(e)}"
     }), flush=True)
     sys.exit(1)
 finally:
